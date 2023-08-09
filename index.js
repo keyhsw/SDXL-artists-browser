@@ -40,9 +40,8 @@ function updateFooter() {
 		var footer = document.getElementsByTagName('footer')[0];
 		footer.classList.add('special');
 		var el1 = document.createElement('span');
-		el1.textContent = 'Why are most artists are missing?!  ';
-		el1.id = 'why';
-		footer.querySelectorAll('div')[0].prepend(el1);
+		el1.textContent = '';
+		// footer.querySelectorAll('div')[0].prepend(el1);
 	}
 }
 
