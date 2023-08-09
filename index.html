@@ -1,19 +1,200 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<title>My static Space</title>
-		<link rel="stylesheet" href="style.css" />
-	</head>
-	<body>
-		<div class="card">
-			<h1>Welcome to your static Space!</h1>
-			<p>You can modify this app directly by editing <i>index.html</i> in the Files and versions tab.</p>
-			<p>
-				Also don't forget to check the
-				<a href="https://huggingface.co/docs/hub/spaces" target="_blank">Spaces documentation</a>.
-			</p>
+<head>
+	<script type="text/javascript" src="artists_and_tags.js"></script>
+	<script type="text/javascript" src="index.js"></script>
+	<link rel="stylesheet" href="index.css">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+	<div id="layout">
+		<div id="rows">
+			<div id="instructions" class="information">
+				<div>
+					<h2>How to</h2>
+					<h3>Clicking an artist's...</h3>
+					<ul>
+						<li><strong>name</strong> copies them to clipboard</li>
+						<li><strong>tags</strong> toggles those checkmarks</li>
+						<li><strong>star</strong> marks them as favorite</li>
+						<li>🎨, 🧑, and 🏞️ switches the prompt/image</li>
+					</ul>
+					<h3>Permissive filter</h3>
+					<ul>
+						<li><strong>checked:</strong> artists matching <strong>any</strong> checked tags</li>
+						<li><strong>unchecked:</strong> artists matching <strong>all</strong> checked tags</li>
+						<li>use unchecked to filter your favorites</li>
+					</ul>
+					<h3>Hide low-use tags</h3>
+					<ul>
+						<li><strong>checked:</strong> hides tags that match less than 3 artists</li>
+						<li>note that all hidden tags are unchecked</li>
+					</ul>
+					<h3>When using Stable Diffusion</h3>
+					<ul>
+						<li>Reproduce these styles with the prompt with "by {Artist full name}, ...."
+						<li>Adding the style tags to the prompt can also help</li>
+						<li>You can combine the styles of two are more artists</li>
+					</ul>
+				</div>
+			</div>
+			<div id="about" class="information">
+				<div>
+					<h2>About</h2>
+					<h3>Incomplete beta version!</h3>
+					<p>
+						I'll add the full 3000k+ database of artists soon.  I want to work out any major issues first.  Please <a href="https://huggingface.co/spaces/mattthew/SDXL-artists-browser/discussions" target="_blank">give feedback on Huggingface</a>.
+					</p>
+					<h3>How to support this project</h3>
+					<ul>
+						<li>Please tell a friends or share on your socials</li>
+						<li>Suggest artists I should add or remove</li>
+						<li>Suggest features and report bugs</li>
+						<li><a href="https://huggingface.co/spaces/mattthew/SDXL-artists-browser/discussions" target="_blank">Leave all feedback on Huggingface</a></li>
+						<li>I don't need money.  Thanks always feels nice!</li>
+					</ul>
+					<h3>Image parameters</h3>
+					<ul>
+						<li>
+							All: Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 10, Seed: 42, Size: 1024x1024, Model hash: 31e35c80fc, Model: sd_xl_base_1.0, Version: v1.5.1
+						</li>
+						<li>
+						 	🎨 Prompt: by {Artist full name}, artwork image, Negative prompt: frame, border, text, signature
+						</li>
+						<li>
+							🧑 Prompt: by {Artist full name}, image of a gently smiling, portrait of a person, head and torso, sitting in their room, Negative prompt: self-portrait, outside, frame, border, text, signature
+						</li>
+						<li>
+							🏞️ Prompt: by {Artist full name}, image of a landscape, outdoor natural scenery, water, bridge, Negative prompt: people, person, frame, border, text, signature
+						</li>
+					</ul>
+					<h3>Disclaimers</h3>
+					<ul>
+						<li>This tools is just for fun.  This information NOT be correct! The tags are from a mix of sources and manual input.  Many tags are AI generated.  I make corrections when I happen to spot them or when submitted.</li>
+						<li>Remember, SDXL is only a crude imitation of these artists.  Check out these artists' actual artwork for more inspiration!</li>
+						<li>This database has more straight white male artists than in the actual population.  That's because they've been favored by art-collectors, past and present.  Please suggest artists I should add.</li>
+						<li>My code doesn't use cookies and sends nothing to any server.  But it's hosted on Huggingface, and I can't control if they cookie you</li>
+						<li>Open source.  Database is Creatives Commons licence</li>
+						<li>I don't get nor do I want compensation for this</li>
+						<li>I'm not affiliated with Stability AI</li>
+						<li>Use at your own risk 🧟</li>
+					</ul>
+					<h3>What's with the sedan?</h3>
+					<ul>
+						<li>
+							All images were generated with the same seed (42).  For many artists, especially with the 🎨 prompt, that seed produces a car, which is not in the prompt.  Other seeds will cause a different visual element across many artists.
+						</li>
+					</ul>
+					<h3>Missing images</h3>
+					<p>
+						If artists are listed in the database file, but their image files are missing, the files are listed below.
+					</p>
+					<ul id="missing_images_report"></ul>
+				</div>
+			</div>
+			<div id="export" class="information">
+				<div>
+					<h2>Export/Import favorited artists</h2>
+					<textarea placeholder="foo" autocomplete="You haven't favorited any artists yet."></textarea>
+					<div class="buttons">
+						<div id="export_to_clipboard">copy to clipboard</div>
+						<div id="export_import">import</div>
+					</div>
+				</div>
+			</div>
+			<div id="toggles">
+				<div id="options_info">
+					<span class="count">documents:</span>
+					<span class="link" id="infoI">⁉️&nbsp;</span>
+					<span class="link" id="infoA">📓&nbsp;</span>
+					<span class="link" id="infoX">📤&nbsp;</span>
+				</div>
+				<div id="options_prompts">
+					<span class="count">show me:</span>
+					<span class="link selected" id="promptA">🎨</span>
+					<span class="link" id="promptP">🧑</span>
+					<span class="link" id="promptL">🏞️</span>
+				</div>
+				<div id="options_artist_sort">
+					<span class="count">sort artists by:</span>
+					<span class="link selected" id="sortAR">🎰</span>
+					<span class="link" id="sortAA">🔠</span>
+				</div>
+				<div id="options_tag_sort">
+					<span class="count">sort tags by:</span>
+					<span class="link selected" id="sortTC">📶</span>
+					<span class="link" id="sortTA">🔠</span>
+				</div>
+				<div class="divider"></div>
+				<label class="top_control top_all">
+					<input type="checkbox" checked="checked" name="check-all" value="check-all" autocomplete="off"><span>all artists</span><span class="count"></span>
+				</label>
+				<div id="artistsShown" class="top_control">
+					<span class="count"></span>
+				</div>
+				<div class="divider"></div>
+				<label class="top_control">
+					<input type="checkbox" checked="checked" name="mode" value="mode" autocomplete="off"><span>permissive</span><span class="count"></span>
+				</label>
+				<label class="top_control">
+					<input type="checkbox" checked="checked" name="use_categories" value="use_categories" autocomplete="off"><span>use categories</span><span class="count"></span>
+				</label>
+				<label class="top_control">
+					<input type="checkbox" checked="checked" name="low_count" value="low_count" autocomplete="off"><span>hide low-use tags</span><span class="count"></span>
+				</label>
+				<label class="top_control">
+					<input type="checkbox" checked="checked" name="favorite" value="favorite" autocomplete="off"><span>favorited</span><span class="count"></span>
+				</label>
+				<div class="divider"></div>
+				<span id="edit_most_used" class="hidden">edit</span>
+				<!-- JS will insert checkboxes here -->
+			</div>
+			<div id="gutter"></div>
+			<div id="image-container">
+				<div id="filtersHidingAll">
+					these filters hide every image<br>
+					check-mark any tag or ‟permissive”<br>
+					👀
+				</div>
+				<!-- JS will insert images here -->
+				<!--
+				<div class="image-item tag1 tag2">
+					<span>
+						<h3>
+							<span class="firstN">Name</span>
+							<span class="lastN">Name</span>
+						</h3>
+						<h4>
+							tag1, tag2
+						</h4>
+					</span>
+					<div>
+						<div class="imgTools">
+							<div class="art_prev"></div>
+							<div class="art_star"></div>
+							<div class="art_next"></div>
+						</div>
+						<div class="imgBox">
+							<img alt="First Last - art" src="images/SDXL_1_0/First_Last-artwork.jpg">
+							<img alt="First Last - art" src="images/SDXL_1_0/First_Last-potrait.jpg">
+							<img alt="First Last - art" src="images/SDXL_1_0/First_Last-landscape.jpg">
+						</div>
+					</div>
+				</div>
+				-->
+			</div>
 		</div>
+		<footer class="special">
+			<div>
+				<span><strong>Beta v0.9 - Missing 2,500 artist!  Click the 📓 at the top left -</strong></span>
+				<span>Enjoy this SDXL artist browser by</span>
+				<a href="https://huggingface.co/mattthew" target="_blank">Mattthew</a>
+				<div id="close_footer"><strong>&nbsp;&nbsp;x&nbsp;&nbsp;</strong></div>
+			</div>
+		</footer>
+		</div>
+		<div id="alert"></div>
 	</body>
-</html>
+	</html>
