@@ -1150,17 +1150,23 @@ function loadLargerImages(imageItem) {
 	let images = imageItem.querySelectorAll('img');
 	let missingFiles = '';
 	let imagePromises = Array.from(images).map((img) => {
-		if(img.src.indexOf('_thumbs') > -1) {
-			let first = img.closest('.image-item').querySelector('.firstN');
-			let last = img.closest('.image-item').querySelector('.lastN');
+		if(img.src.indexOf('_thumbs') > -1 && img.dataset.thumbSrc == undefined) {
+			// don't try to load if we tried before
+			let first = img.closest('.image-item').querySelector('.firstN').textContent;
+			let last = img.closest('.image-item').querySelector('.lastN').textContent;
 			return new Promise((resolve, reject) => {
 				img.onload = () => {
 					resolve();
 				}
 				img.onerror = () => {
-					missingFiles += '<li>' + first + '_' + last + '-artwork.webp</li>';
+					if(img.dataset.missingFiles == undefined) {
+						img.dataset.missingFiles = true;
+						missingFiles += '<li>' + img.src + '</li>';
+						img.src = img.dataset.thumbSrc;
+					}
 					reject();
 				};
+				img.dataset.thumbSrc = img.src;
 				img.src = img.src.replace('_thumbs','');
 			});
 		}
