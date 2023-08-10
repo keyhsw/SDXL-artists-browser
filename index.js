@@ -128,7 +128,7 @@ function insertArtists() {
 					missingFiles += '<li>' + first + '_' + last + '-artwork.webp</li>';
 					reject();
 				};
-				imgArtwork.src = encodeURI(src + '-artwork.webp');
+				imgArtwork.src = src + '-artwork.webp';
 			}),
 			new Promise((resolve, reject) => {
 				imgPortrait.onload = resolve;
@@ -136,7 +136,7 @@ function insertArtists() {
 					missingFiles += '<li>' + first + '_' + last + '-portrait.webp</li>';
 					reject();
 				};
-				imgPortrait.src = encodeURI(src + '-portrait.webp');
+				imgPortrait.src = src + '-portrait.webp';
 			}),
 			new Promise((resolve, reject) => {
 				imgLandscape.onload = resolve;
@@ -144,7 +144,7 @@ function insertArtists() {
 					missingFiles += '<li>' + first + '_' + last + '-landscape.webp</li>';
 					reject();
 				};
-				imgLandscape.src = encodeURI(src + '-landscape.webp');
+				imgLandscape.src = src + '-landscape.webp';
 			})
 		]);
 	});
