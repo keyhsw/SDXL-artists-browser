@@ -115,6 +115,8 @@ function insertArtists() {
 		} else {
 			src += first.replaceAll(' ', '_') + '_' + last.replaceAll(' ', '_');
 		}
+		// files use accented characters and huggingface stores the files with this encoding
+		src = encodeURI(src.normalize("NFD"));
 		imgBox.appendChild(imgArtwork);
 		imgBox.appendChild(imgPortrait);
 		imgBox.appendChild(imgLandscape);
