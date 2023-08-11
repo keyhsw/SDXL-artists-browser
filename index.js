@@ -887,11 +887,14 @@ function loadMostUsedTags() {
 	let mostUsedCategory = document.querySelector('[data-category-name="important"]');
 	for(let tag in state) {
 		if (state[tag]) {
-			let label = document.querySelector('input[name="'+ tag +'"]').parentNode;
-			label.classList.add('is_most_used');
-			label.querySelectorAll('.most_used_indicator')[0].textContent = '-';
-			mostUsedCategory.after(label);
-			updateTagArrayToMatchMostUsed(true,label,tag);
+			let label = document.querySelector('input[name="'+ tag +'"]');
+			if(label) {
+				label = label.parentNode;
+				label.classList.add('is_most_used');
+				label.querySelectorAll('.most_used_indicator')[0].textContent = '-';
+				mostUsedCategory.after(label);
+				updateTagArrayToMatchMostUsed(true,label,tag);
+			}
 		}
 	};
 }
@@ -1096,7 +1099,6 @@ function copyStuffToClipboard(item,stuff) {
 		' ' + item.closest('.image-item').getElementsByClassName('lastN')[0].textContent;
 		doAlert('Copied to name clipboard!',1);
 	} else if(stuff == 'tags') {
-		console.log(item);
 		var str = item.textContent;
 		doAlert('Copied to tags clipboard!',1);
 	}
