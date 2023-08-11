@@ -86,8 +86,20 @@ h4 {
 	box-shadow: 0 5px 20px #0000007d;
 }
 
+#alert.left {
+	left: -52px;
+	right: initial;
+}
+
 #alert.show {
 	right: 12px;
+	opacity: 1;
+	transition: all 100ms ease-in;
+}
+
+#alert.left.show {
+	left: 12px;
+	right: initial;
 	opacity: 1;
 	transition: all 100ms ease-in;
 }
@@ -569,10 +581,11 @@ footer.special #close_footer strong {
 	top: -256px;
 	left: 0px;
 	width: 256px;
-	aspect-ratio: 1 / 1;
+	aspect-ratio: 1 / 1.33;
 	overflow: hidden;
 	border-radius: 2px;
-	background-color: #222;
+	background-color: #111;
+	text-align: left;
 	cursor: pointer;
 	animation-name: reduce;
 	animation-duration: 100ms;
@@ -619,14 +632,27 @@ footer.special #close_footer strong {
 .image-item img {
 	display: block;
 	width: 256px;
+	position: absolute;
+	top: 0;
 }
 
-.image-item img.hidden {
+.image-item .imgBox img.hidden {
 	display: none;
 }
 
 .image-item:hover .imgBox img {
 	width: 100%;
+	z-index: 1;
+	box-shadow: -10px 10px 20px rgba(0,0,0,0.6);
+}
+
+.image-item:hover .imgBox img.hidden {
+	display: initial;
+	width: 33%;
+	position: relative;
+	top: 75%;
+	box-shadow: initial;
+	z-index: 0;
 }
 
 .image-item.favorite {

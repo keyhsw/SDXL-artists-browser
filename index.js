@@ -52,11 +52,14 @@ function insertArtists() {
 	let imagePromises = artistsData.map((artist) => {
 		var last = artist[0];
 		var first = artist[1];
-		var tags1 = artist[2].replaceAll('|', ' ').toLowerCase();
+		var tags1 = artist[2].replaceAll('|', ' ').toLowerCase(); // for classes
+		var tags2 = artist[2].replaceAll('|', ', ').toLowerCase(); // for display
 		// class names can't start with a number, but some tags do
-		// in these cases prepending with 'qqqq-'
+		// in these cases we prepend the class with 'qqqq-'
 		tags1 = tags1.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
-		var tags2 = artist[2].replaceAll('|', ', ').toLowerCase();
+		// artists can have a tag in the format of "added-YYYY-MM"
+		// we want that to show up as a filter, but not on the artist card
+		tags2 = tags2.replace(/, added-(\d|-)*/g,'');
 		var itemDiv = document.createElement('div');
 		itemDiv.className = 'image-item ' + tags1;
 		var itemHeader = document.createElement('span');
@@ -307,24 +310,24 @@ function highlightSelectedOption(selected) {
 		});
 		if(imgTypeShown == 0) {
 			document.getElementById('promptA').classList.add('selected');
-			doAlert('Showing artwork');
+			doAlert('Showing artwork',0);
 		} else if(imgTypeShown == 1) {
 			document.getElementById('promptP').classList.add('selected');
-			doAlert('Showing portraits');
+			doAlert('Showing portraits',0);
 		} else if(imgTypeShown == 2) {
 			document.getElementById('promptL').classList.add('selected');
-			doAlert('Showing landscapes');
+			doAlert('Showing landscapes',0);
 		}
 	} else {
 		if(selected == 'promptA') {
 			imgTypeShown = 0;
-			doAlert('Showing artwork');
+			doAlert('Showing artwork',0);
 		} else if(selected == 'promptP') {
 			imgTypeShown = 1;
-			doAlert('Showing portraits');
+			doAlert('Showing portraits',0);
 		} else if(selected == 'promptL') {
 			imgTypeShown = 2;
-			doAlert('Showing landscapes');
+			doAlert('Showing landscapes',0);
 		}
 		var links = document.getElementById(selected).parentNode.querySelectorAll('.link');
 		links.forEach(function(link) {
@@ -664,7 +667,7 @@ function showExport() {
 function copyExportToClipboard() {
 	var favorites = document.getElementById('export').getElementsByTagName('textarea')[0].value;
 	navigator.clipboard.writeText(favorites);
-	doAlert('Favorites copied to clipboard!');
+	doAlert('Favorites copied to clipboard!',1);
 }
 
 function importFavorites() {
@@ -1056,18 +1059,30 @@ function updateFavoritesCount() {
 	favoriteCounter.textContent = ' - ' + favoriteCount;
 }
 
-function doAlert(str) {
+function doAlert(str,location) {
 	var alert = document.getElementById('alert');
 	alert.textContent = str;
+	// remove show and cleartimeout to redo anim if alert called multiple times
 	alert.classList.remove('show');
 	window.clearTimeout(timer);
+	if(location == 0) {
+		alert.classList.add('left');
+	} else {
+		alert.classList.remove('left');
+		// CSS defaults to right
+	}
 	timer = setTimeout(showAlert, 100);
 }
 
 function showAlert() {
 	var alert = document.getElementById('alert');
 	alert.classList.add('show');
-	timer = setTimeout(hideAlert, 2000);
+	if(alert.classList.contains('left')) {
+		// shorter display time because it covers the enlarged image
+		timer = setTimeout(hideAlert, 750);
+	} else {
+		timer = setTimeout(hideAlert, 2000);
+	}
 }
 
 function hideAlert() {
@@ -1079,11 +1094,11 @@ function copyStuffToClipboard(item,stuff) {
 	if(stuff == 'name') {
 		var str = item.closest('.image-item').getElementsByClassName('firstN')[0].textContent +
 		' ' + item.closest('.image-item').getElementsByClassName('lastN')[0].textContent;
-		doAlert('Copied to name clipboard!');
+		doAlert('Copied to name clipboard!',1);
 	} else if(stuff == 'tags') {
 		console.log(item);
 		var str = item.textContent;
-		doAlert('Copied to tags clipboard!');
+		doAlert('Copied to tags clipboard!',1);
 	}
 	navigator.clipboard.writeText(str);
 }
