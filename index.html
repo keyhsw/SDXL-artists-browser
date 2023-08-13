@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<title>SDXL Artist Style Explorer by Mattthew</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<script type="text/javascript" src="artists_and_tags.js"></script>
 	<script type="text/javascript" src="index.js"></script>
@@ -32,6 +33,14 @@
 					<ul>
 						<li><strong>checked:</strong> hides tags that match less than 3 artists</li>
 						<li>note that all hidden tags are unchecked</li>
+					</ul>
+					<h3>Hide deprecated artists</h3>
+					<ul>
+						<li>I've hand verified that SDXL doesn't know these artists' styles</li>
+						<li>If you prompt with their names, the result...</li>
+						<li>...will be unlike their actual style and generic.</li>
+						<li>You're better off prompting "a painting", etc.</li>
+						<li>I may eventually remove the artists from the database</li>
 					</ul>
 					<h3>When using Stable Diffusion</h3>
 					<ul>
@@ -146,6 +155,9 @@
 					<input type="checkbox" checked="checked" name="low_count" value="low_count" autocomplete="off"><span>hide low-use tags</span><span class="count"></span>
 				</label>
 				<label class="top_control">
+					<input type="checkbox" checked="checked" name="deprecated" value="deprecated" autocomplete="off"><span>hide deprecated</span><span class="count"></span>
+				</label>
+				<label class="top_control">
 					<input type="checkbox" checked="checked" name="favorite" value="favorite" autocomplete="off"><span>favorited</span><span class="count"></span>
 				</label>
 				<div class="divider"></div>
@@ -187,10 +199,9 @@
 				-->
 			</div>
 		</div>
-		<footer class="special">
+		<footer>
 			<div>
-				<span><strong>Temporarily 500 artists while in Beta.</strong> To learn more click the 📓 at the top left -</span>
-				<span>SDXL Artist Style Explorer, v0.9, by</span>
+				<span>SDXL Artist Style Explorer, v1.0, by</span>
 				<a href="https://huggingface.co/mattthew" target="_blank">Mattthew</a>
 				<div id="close_footer"><strong>&nbsp;&nbsp;x&nbsp;&nbsp;</strong></div>
 			</div>

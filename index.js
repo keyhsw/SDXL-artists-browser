@@ -62,6 +62,9 @@ function insertArtists() {
 		tags2 = tags2.replace(/, added-(\d|-)*/g,'');
 		var itemDiv = document.createElement('div');
 		itemDiv.className = 'image-item ' + tags1;
+		if(artist[3]) {
+			itemDiv.dataset.deprecated = true;
+		}
 		var itemHeader = document.createElement('span');
 		var h3 = document.createElement('h3');
 		itemHeader.appendChild(h3);
@@ -126,32 +129,54 @@ function insertArtists() {
 		box.appendChild(imgBox);
 		itemDiv.appendChild(box);
 		container.appendChild(itemDiv);
-		return Promise.allSettled([
-			new Promise((resolve, reject) => {
-				imgArtwork.onload = resolve;
-				imgArtwork.onerror = () => {
-					missingFiles += '<li>' + first + '_' + last + '-artwork.webp</li>';
-					reject();
-				};
-				imgArtwork.src = src + '-artwork.webp';
-			}),
-			new Promise((resolve, reject) => {
-				imgPortrait.onload = resolve;
-				imgPortrait.onerror = () => {
-					missingFiles += '<li>' + first + '_' + last + '-portrait.webp</li>';
-					reject();
-				};
-				imgPortrait.src = src + '-portrait.webp';
-			}),
-			new Promise((resolve, reject) => {
-				imgLandscape.onload = resolve;
-				imgLandscape.onerror = () => {
-					missingFiles += '<li>' + first + '_' + last + '-landscape.webp</li>';
-					reject();
-				};
-				imgLandscape.src = src + '-landscape.webp';
-			})
-		]);
+		if(artist[3]) {
+			var deprecatedSpan = document.createElement('span');
+			deprecatedSpan.textContent = 'this artist is deprecated.  hover to view anyway.  more info in the help ⁉️'
+			deprecatedSpan.className = 'deprecated';
+			imgBox.appendChild(deprecatedSpan);
+			return Promise.allSettled([
+				new Promise((resolve, reject) => {
+					imgArtwork.style.display = 'none';
+					imgArtwork.src = 'images/SDXL_1_0_thumbs/1x1.webp';
+				}),
+				new Promise((resolve, reject) => {
+					imgPortrait.style.display = 'none';
+					imgPortrait.src = 'images/SDXL_1_0_thumbs/1x1.webp';
+				}),
+				new Promise((resolve, reject) => {
+					imgLandscape.style.display = 'none';
+					imgLandscape.src = 'images/SDXL_1_0_thumbs/1x1.webp';
+				})
+			]);
+		} else {
+			// if not flagged as deprecated
+			return Promise.allSettled([
+				new Promise((resolve, reject) => {
+					imgArtwork.onload = resolve;
+					imgArtwork.onerror = () => {
+						missingFiles += '<li>' + first + '_' + last + '-artwork.webp</li>';
+						reject();
+					};
+					imgArtwork.src = src + '-artwork.webp';
+				}),
+				new Promise((resolve, reject) => {
+					imgPortrait.onload = resolve;
+					imgPortrait.onerror = () => {
+						missingFiles += '<li>' + first + '_' + last + '-portrait.webp</li>';
+						reject();
+					};
+					imgPortrait.src = src + '-portrait.webp';
+				}),
+				new Promise((resolve, reject) => {
+					imgLandscape.onload = resolve;
+					imgLandscape.onerror = () => {
+						missingFiles += '<li>' + first + '_' + last + '-landscape.webp</li>';
+						reject();
+					};
+					imgLandscape.src = src + '-landscape.webp';
+				})
+			]);
+		}
 	});
 	let report = document.getElementById('missing_images_report');
 	Promise.allSettled(imagePromises).then(() => {
@@ -196,9 +221,6 @@ function insertCheckboxesFromArtistsData() {
 			toggles.appendChild(label);
 		}
 	}
-	var checkAll = document.querySelector('input[name="check-all"]');
-	var divs = document.querySelectorAll('.image-item');
-	checkAll.parentNode.querySelector('.count').textContent = ' - ' + divs.length.toLocaleString();
 }
 
 function insertCheckboxesFromCategories() {
@@ -465,18 +487,29 @@ function updateArtistsCountPerCategory() {
 }
 
 function updateCountOfArtistsShown(divs, hiddenDivs) {
+	var checkAll = document.querySelector('input[name="check-all"]').parentNode.querySelector('.count');
+	var shown = document.getElementById('artistsShown').querySelector('.count');
+	var deprecatedItems = document.querySelectorAll('[data-deprecated="true"]');
 	if(!divs) {
 		// when this is called by change of a checkbox, divs is not passed
 		var divs = document.querySelectorAll('.image-item');
 		var hiddenDivs = document.querySelectorAll('.image-item.hidden');
 	}
-	var visible = divs.length - hiddenDivs.length;
-	var percent = Math.round((visible / divs.length) * 100) + '%';
+	var total = 0;
+	var visible = 0;
+	if(document.querySelector('input[name="deprecated"]').checked) {
+		total = divs.length - deprecatedItems.length;
+		visible = total - hiddenDivs.length + deprecatedItems.length;
+	} else {
+		total = divs.length;
+		visible = total - hiddenDivs.length;
+	}
+	var percent = Math.round((visible / total) * 100) + '%';
 	if(percent == '0%') {
 		percent = '<1%';
 	}
-	var el = document.getElementById('artistsShown').querySelector('.count');
-	el.textContent = 'shown - ' + visible.toLocaleString() + ' / ' + percent;
+	checkAll.textContent = ' - ' + total.toLocaleString();
+	shown.textContent = 'shown - ' + visible.toLocaleString() + ' / ' + percent;
 }
 
 function checkAllInCategory(theCheckbox) {
@@ -552,6 +585,7 @@ function unhideArtistsPermissive() {
 			imageItem.classList.remove('hidden');
 		}
 	});
+	hideDeprecated();
 }
 
 function unhideArtistsStrict() {
@@ -581,6 +615,7 @@ function unhideArtistsStrict() {
 			imageItem.classList.remove('hidden');
 		});
 	}
+	hideDeprecated();
 }
 
 function unhideAristsExact() {
@@ -601,6 +636,16 @@ function unhideAristsExact() {
 					imageItem.classList.remove('hidden');
 				}
 			}
+		});
+	}
+	hideDeprecated();
+}
+
+function hideDeprecated() {
+	if(document.querySelector('input[name="deprecated"]').checked) {
+		let deprecatedItems = document.querySelectorAll('[data-deprecated="true"]');
+		deprecatedItems.forEach(function(item, index) {
+			item.classList.add('hidden');
 		});
 	}
 }
@@ -1185,7 +1230,21 @@ function loadLargerImages(imageItem) {
 					reject();
 				};
 				img.dataset.thumbSrc = img.src;
-				img.src = img.src.replace('_thumbs','');
+				// inline style set for deprecated artists
+				img.style.display = '';
+				let src = 'images/SDXL_1_0/';
+				if(first == '') {
+					src += last.replaceAll(' ', '_');
+				} else {
+					src += first.replaceAll(' ', '_') + '_' + last.replaceAll(' ', '_');
+				}
+				if(img.classList.contains('img_artwork')) {
+					img.src = src + '-artwork.webp';
+				} else if(img.classList.contains('img_portrait')) {
+					img.src = src + '-portrait.webp';
+				} else if(img.classList.contains('img_landscape')) {
+					img.src = src + '-landscape.webp';
+				}
 			});
 		}
 	});
@@ -1288,6 +1347,13 @@ document.addEventListener("DOMContentLoaded", function() {
 			} else if(checkbox.name == 'low_count') {
 				checkbox.addEventListener('change', function(e) {
 					showHideLowCountTags();
+					storeCheckboxState(e.target);
+				});
+			} else if(checkbox.name == 'deprecated') {
+				checkbox.addEventListener('change', function(e) {
+					hideAllArtists();
+					unhideBasedOnPermissiveSetting();
+					updateArtistsCountPerTag('click');
 					storeCheckboxState(e.target);
 				});
 			}

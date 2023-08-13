@@ -111,7 +111,7 @@ footer {
 	color: #aaa;
 	background-color: #222;
 	border-top: 1px solid black;
-	font-size: 10px;
+	font-size: 12px;
 }
 
 footer.special {
@@ -252,8 +252,6 @@ footer.special #close_footer strong {
 	color: #ffe300;
 	font-style: normal;
 }
-
-
 
 #toggles #artistsMatching {
 	opacity: 0.8;
@@ -513,10 +511,10 @@ footer.special #close_footer strong {
 	height: 100%;
 	background-color: #666;
 	opacity: 0;
-	transition: opacity 100ms linear;
+	transition: opacity 200ms 50ms linear;
 }
 
-.image-item .imgTools:hover {
+.image-item:hover .imgTools {
 	opacity: 1;
 }
 
@@ -627,6 +625,13 @@ footer.special #close_footer strong {
   100% {
     opacity: 1;
   }
+}
+
+.image-item .deprecated {
+	color: #888;
+	text-align: center;
+	display: block;
+	padding: 70px 20px 20px 20px;
 }
 
 .image-item img {
