@@ -38,9 +38,9 @@ function updateFooter() {
 	let proto = window.location.protocol;
 	if (proto.startsWith('http')) {
 		var footer = document.getElementsByTagName('footer')[0];
-		footer.classList.add('special');
 		var el1 = document.createElement('span');
 		el1.textContent = '';
+		// footer.classList.add('special');
 		// footer.querySelectorAll('div')[0].prepend(el1);
 	}
 }
