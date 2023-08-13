@@ -1193,7 +1193,8 @@ function showHideLowCountTags() {
 	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 	checkboxes.forEach(function(checkbox) {
 		if(hideLowCount) {
-			if(checkbox.parentNode.classList.contains('category') || checkbox.parentNode.classList.contains('no_matches')) {
+			var classes = checkbox.parentNode.classList;
+			if(classes.contains('category') || classes.contains('no_matches') || classes.contains('top_control')) {
 				// skip hide
 			} else {
 				let count = parseInt(checkbox.parentNode.querySelector('.count').textContent.replace(/,/g, '').trim().substring(2),10);
