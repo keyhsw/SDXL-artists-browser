@@ -9,6 +9,8 @@ var imgTypeShown = 0;
 var log = '';
 var editMode = false;
 var windowWidth = 0;
+var gutterStartPosX, mouseStartPosX, gutterEndPercentX
+var style, stylesheet, imgHoverRule;
 
 //
 //
@@ -32,6 +34,7 @@ function startUp() {
 	loadMostUsedTags();
 	updateArtistsCountPerCategory();
 	showHideLowCountTags();
+	getStyleRuleForDrag();
 }
 
 function updateFooter() {
@@ -994,6 +997,9 @@ function enterExitEditMostUsedMode(doExit) {
 			// clean up classes added to track moved tags during edit mode
 			label.classList.remove('was_moved');
 		})
+		document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
+		document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
+		document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
 		updateArtistsCountPerCategory();
 	} else {
 		// enter edit mode
@@ -1003,6 +1009,9 @@ function enterExitEditMostUsedMode(doExit) {
 		inputs.forEach(function(input) {
 			input.disabled = true;
 		});
+		document.getElementById('toggles').style.width = '';
+		document.getElementById('gutter').style.left =  '';
+		document.getElementById('image-container').style.marginLeft = '';
 	}
 }
 
@@ -1286,6 +1295,41 @@ function cleanupEventListener(imageItem) {
 	layout.removeEventListener('mousemove', imageItem.boundMouseMoveFunc);
 }
 
+function getStyleRuleForDrag() {
+	style = document.createElement('style');
+	document.head.appendChild(style);
+	stylesheet = style.sheet;
+	let index = stylesheet.insertRule('.image-item:hover .imgBox { width: 40%; }', 0);
+	imgHoverRule = stylesheet.cssRules[index];
+}
+
+function movePartition(e) {
+	let newPos = gutterStartPosX + e.pageX - mouseStartPosX;
+	if(newPos < 240) {
+		newPos = 240;
+	} else if(newPos > window.innerWidth - 350) {
+		newPos = window.innerWidth - 350;
+	}
+	gutterEndPercentX = (newPos / window.innerWidth) * 100;
+	document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
+	document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
+	document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
+	imgHoverRule.style.width = gutterEndPercentX + '%';
+	// prevent text from being selected during drag
+	if (window.getSelection) {
+		if (window.getSelection().empty) {
+			// Chrome
+			window.getSelection().empty();
+		} else if (window.getSelection().removeAllRanges) {
+			// Firefox
+			window.getSelection().removeAllRanges();
+		}
+	} else if (document.selection) {
+		// IE?
+		document.selection.empty();
+	}
+}
+
 //
 //
 //
@@ -1434,7 +1478,7 @@ document.addEventListener("DOMContentLoaded", function() {
 		highlightSelectedOption('sortAR');
 		storeOptionsState();
 	});
-	// must used mode
+	// most used mode
 	var mostUsed = document.getElementById('edit_most_used');
 	mostUsed.addEventListener('click', function(e) {
 		enterExitEditMostUsedMode();
@@ -1489,6 +1533,17 @@ document.addEventListener("DOMContentLoaded", function() {
 			// toggleThisArtistsTags(this.textContent);
 		});
 	});
+	// add gutter event listener
+	var gutter = document.getElementById('gutter');
+	gutter.addEventListener('mousedown', function(e) {
+		e.preventDefault();
+		gutterStartPosX = this.offsetLeft;
+		mouseStartPosX = e.pageX;
+		this.addEventListener('mousemove', movePartition, false);
+		window.addEventListener('mouseup', function() {
+			gutter.removeEventListener('mousemove', movePartition, false);
+		}, false);
+	}, false);
 	// add footer event listeners
 	var closeFooter = document.getElementById('close_footer');
 	closeFooter.addEventListener('click', function(e) {

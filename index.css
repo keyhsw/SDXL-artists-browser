@@ -50,14 +50,56 @@ h4 {
 
 #gutter {
 	position: fixed;
+	z-index: 1;
 	top: 0;
 	left: 40%;
-	width: 40px;
+	width: 50px;
 	height: calc(100% - 40px);
 	flex-shrink: 0;
 	background: black;
-	background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 80%);
-	border-right: 1px solid #222;
+	background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40%);
+}
+
+#gutter:hover {
+	background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 40%)
+}
+
+#gutter div {
+	position: relative;
+	width: 20px;
+	height: 100%;
+	position: relative;
+	left: 20px;
+	border-right: 1px solid rgba(255,255,255,0.2);
+	cursor: col-resize;
+}
+
+#gutter:hover div {
+	border-right: 1px solid rgba(255,255,255,0.4);
+}
+
+#gutter div[data-tooltip]::before {
+	content: attr(data-tooltip);
+	opacity: 0;
+	transition: opacity 0ms 0ms linear;
+}
+
+#gutter div[data-tooltip]:hover::before {
+	content: attr(data-tooltip);
+	position: absolute;
+	top: 20px;
+	left: 50%;
+	transform: translateX(-40%);
+	background-color: #555;
+	padding: 4px 8px;
+	border-radius: 4px;
+	box-shadow: 0 5px 10px black;
+	white-space: nowrap;
+	font-size: 12px;
+	color: white;
+	opacity: 1;
+	transition: opacity 100ms 500ms linear;
+	pointer-events: none;  /* Make sure the tooltip doesn't interfere with other interactions */
 }
 
 #image-container {
@@ -66,7 +108,7 @@ h4 {
 	flex-wrap: wrap;
 	align-items: flex-start;
 	justify-content: space-around;
-	margin-left: calc(40% + 40px);
+	margin-left: calc(40% + 50px);
 	margin-top: 20px;
 	margin-bottom: 20px;
 	width: 100%;
