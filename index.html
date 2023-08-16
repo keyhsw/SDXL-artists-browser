@@ -34,13 +34,11 @@
 						<li><strong>checked:</strong> hides tags that match less than 3 artists</li>
 						<li>note that all hidden tags are unchecked</li>
 					</ul>
-					<h3>Hide deprecated artists</h3>
+					<h3>Hide unknown to SDXL</h3>
 					<ul>
 						<li>I've hand verified that SDXL doesn't know these artists' styles</li>
-						<li>If you prompt with their names, the result...</li>
-						<li>...will be unlike their actual style and generic.</li>
-						<li>You're better off prompting "a painting", etc.</li>
-						<li>I may eventually remove the artists from the database</li>
+						<li>If you prompt with their names, the result will be unlike their actual style and generic, and you can achieve similar results by prompting "a painting", etc.</li>
+						<li>They're included in the database for the record of whar SDXL doesn't know, but the images may be removed.</li>
 					</ul>
 					<h3>When using Stable Diffusion</h3>
 					<ul>
@@ -155,7 +153,7 @@
 					<input type="checkbox" checked="checked" name="low_count" value="low_count" autocomplete="off"><span>hide low-use tags</span><span class="count"></span>
 				</label>
 				<label class="top_control">
-					<input type="checkbox" checked="checked" name="deprecated" value="deprecated" autocomplete="off"><span>hide deprecated</span><span class="count"></span>
+					<input type="checkbox" checked="checked" name="deprecated" value="deprecated" autocomplete="off"><span>hide unknown to SDXL</span><span class="count"></span>
 				</label>
 				<label class="top_control">
 					<input type="checkbox" checked="checked" name="favorite" value="favorite" autocomplete="off"><span>favorited</span><span class="count"></span>

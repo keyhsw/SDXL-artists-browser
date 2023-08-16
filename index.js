@@ -134,7 +134,7 @@ function insertArtists() {
 		container.appendChild(itemDiv);
 		if(artist[3]) {
 			var deprecatedSpan = document.createElement('span');
-			deprecatedSpan.textContent = 'this artist is deprecated.  hover to view anyway.  more info in the help ⁉️'
+			deprecatedSpan.textContent = 'this artist is unknown to SDXL - more info in the help ⁉️'
 			deprecatedSpan.className = 'deprecated';
 			imgBox.appendChild(deprecatedSpan);
 			return Promise.allSettled([
@@ -419,9 +419,12 @@ function rotatePromptsImages() {
 
 function updateArtistsCountPerTag(whoCalled) {
 	var permissiveCheckbox = document.querySelector('input[name="mode"]');
+	var deprecatedCheckbox = document.querySelector('input[name="deprecated"]');
 	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 	var divs = document.querySelectorAll('.image-item');
 	var hiddenDivs = document.querySelectorAll('.image-item.hidden');
+	var deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
+	var count = 0;
 	if(permissiveCheckbox.checked || whoCalled == 'start') {
 		// on page load, we need to add all the counts first
 		checkboxes.forEach(function(checkbox) {
@@ -429,7 +432,14 @@ function updateArtistsCountPerTag(whoCalled) {
 			if(!isTop) {
 				var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
 				var matchingDivs = document.querySelectorAll('.image-item.' + theClass);
-				var count = matchingDivs.length;
+				let filteredDivs = Array.from(matchingDivs).filter(mat => {
+					return !Array.from(deprecatedDivs).some(dep => dep === mat);
+				});
+				if(deprecatedCheckbox.checked) {
+					count = filteredDivs.length;
+				} else {
+				 	count = matchingDivs.length;
+				}
 				checkbox.parentNode.classList.remove('no_matches');
 				checkbox.parentNode.querySelector('input').disabled = false;
 				checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
@@ -441,27 +451,32 @@ function updateArtistsCountPerTag(whoCalled) {
 		checkboxes.forEach(function(checkbox) {
 			let isTop = checkbox.parentNode.classList.contains('top_control');
 			if(!isTop) {
-				var count = 0;
+				count = 0;
 				// class names can't start with a number, but some tags do
 				// in these cases prepending with 'qqqq-'
 				var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
-				if(!permissiveCheckbox.checked) {
-					// for strict mode, for each checkbox, only count artists with a classes matching all checked checkboxes
-					var matchingDivs = document.querySelectorAll('.image-item.' + theClass + ':not(.hidden)');
-					count = matchingDivs.length;
-					if(count == 0) {
-						checkbox.parentNode.classList.add('no_matches');
-						checkbox.parentNode.querySelector('input').disabled = true;
-					} else {
-						checkbox.parentNode.classList.remove('no_matches');
-						checkbox.parentNode.querySelector('input').disabled = false;
-					}
+				// for strict mode, for each checkbox, only count artists with a classes matching all checked checkboxes
+				var matchingDivs = document.querySelectorAll('.image-item.' + theClass + ':not(.hidden)');
+				let filteredDivs = Array.from(matchingDivs).filter(mat => {
+					return !Array.from(deprecatedDivs).some(dep => dep === mat);
+				});
+				if(deprecatedCheckbox.checked) {
+					count = filteredDivs.length;
+				} else {
+				 	count = matchingDivs.length;
+				}
+				if(count == 0) {
+					checkbox.parentNode.classList.add('no_matches');
+					checkbox.parentNode.querySelector('input').disabled = true;
+				} else {
+					checkbox.parentNode.classList.remove('no_matches');
+					checkbox.parentNode.querySelector('input').disabled = false;
 				}
 				checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
 			}
 		});
 	}
-	updateCountOfArtistsShown(divs, hiddenDivs);
+	updateCountOfAllArtistsShown(divs, hiddenDivs);
 }
 
 function updateArtistsCountPerCategory() {
@@ -489,7 +504,7 @@ function updateArtistsCountPerCategory() {
 	}
 }
 
-function updateCountOfArtistsShown(divs, hiddenDivs) {
+function updateCountOfAllArtistsShown(divs, hiddenDivs) {
 	var checkAll = document.querySelector('input[name="check-all"]').parentNode.querySelector('.count');
 	var shown = document.getElementById('artistsShown').querySelector('.count');
 	var deprecatedItems = document.querySelectorAll('[data-deprecated="true"]');
@@ -1225,37 +1240,37 @@ function loadLargerImages(imageItem) {
 	let imagePromises = Array.from(images).map((img) => {
 		if(img.src.indexOf('_thumbs') > -1 && img.dataset.thumbSrc == undefined) {
 			// don't try to load if we tried before
-			let first = img.closest('.image-item').querySelector('.firstN').textContent;
-			let last = img.closest('.image-item').querySelector('.lastN').textContent;
-			return new Promise((resolve, reject) => {
-				img.onload = () => {
-					resolve();
-				}
-				img.onerror = () => {
-					if(img.dataset.missingFiles == undefined) {
-						img.dataset.missingFiles = true;
-						missingFiles += '<li>' + img.src + '</li>';
-						img.src = img.dataset.thumbSrc;
+			if(!img.dataset.deprecated) {
+				let first = img.closest('.image-item').querySelector('.firstN').textContent;
+				let last = img.closest('.image-item').querySelector('.lastN').textContent;
+				return new Promise((resolve, reject) => {
+					img.onload = () => {
+						resolve();
 					}
-					reject();
-				};
-				img.dataset.thumbSrc = img.src;
-				// inline style set for deprecated artists
-				img.style.display = '';
-				let src = 'images/SDXL_1_0/';
-				if(first == '') {
-					src += last.replaceAll(' ', '_');
-				} else {
-					src += first.replaceAll(' ', '_') + '_' + last.replaceAll(' ', '_');
-				}
-				if(img.classList.contains('img_artwork')) {
-					img.src = src + '-artwork.webp';
-				} else if(img.classList.contains('img_portrait')) {
-					img.src = src + '-portrait.webp';
-				} else if(img.classList.contains('img_landscape')) {
-					img.src = src + '-landscape.webp';
-				}
-			});
+					img.onerror = () => {
+						if(img.dataset.missingFiles == undefined) {
+							img.dataset.missingFiles = true;
+							missingFiles += '<li>' + img.src + '</li>';
+							img.src = img.dataset.thumbSrc;
+						}
+						reject();
+					};
+					img.dataset.thumbSrc = img.src;
+					let src = 'images/SDXL_1_0/';
+					if(first == '') {
+						src += last.replaceAll(' ', '_');
+					} else {
+						src += first.replaceAll(' ', '_') + '_' + last.replaceAll(' ', '_');
+					}
+					if(img.classList.contains('img_artwork')) {
+						img.src = src + '-artwork.webp';
+					} else if(img.classList.contains('img_portrait')) {
+						img.src = src + '-portrait.webp';
+					} else if(img.classList.contains('img_landscape')) {
+						img.src = src + '-landscape.webp';
+					}
+				});
+			}
 		}
 	});
 	let report = document.getElementById('missing_images_report');
