@@ -434,12 +434,13 @@ footer.special #close_footer strong {
 #export textarea {
 	resize: vertical;
 	width: 100%;
-	height: 200px;
+	height: 150px;
 }
 
 #export .buttons {
 	display: flex;
 	flex-direction: row;
+	margin-bottom: 20px;
 }
 
 #export .buttons div {
@@ -450,6 +451,16 @@ footer.special #close_footer strong {
 
 #export .buttons div:hover {
 	opacity: 1;
+}
+
+#export #import_favorites_button, #export #delete_edits_button {
+	opacity: 1;
+	color: #f77;
+}
+
+#export #import_favorites_button:hover, #export #delete_edits_button:hover {
+	opacity: 1;
+	color: #fff;
 }
 
 #filtersHidingAll {
@@ -528,6 +539,47 @@ footer.special #close_footer strong {
 	color: #aaa;
 }
 
+.image-item h4.edit_mode {
+	z-index: 1;
+	top: 40px;
+	width: 206px;
+	height: 304px;
+	box-sizing: border-box;
+	padding: 6px 4px;
+	display: flex;
+	flex-direction: column;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	background-color: #fbc1c1;
+	border-radius: 4px;
+	border: 2px solid #b30000;
+	box-shadow: inset 0px 3px 4px #00000096;
+	text-align: left;
+	font-size: 14px;
+	color: #000;
+	opacity: 1;
+	cursor: default;
+}
+
+.image-item h4.edit_mode label {
+	cursor: pointer;
+}
+
+#edit_mode_helper {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	padding: 10px 0 0 20px;
+	background-color: white;
+	color: #777;
+}
+
+#edit_mode_helper span {
+	white-space: nowrap;
+	cursor: pointer;
+}
+
 .image-item .firstN {
 	margin-right: 8px;
 	white-space: nowrap;
@@ -547,9 +599,7 @@ footer.special #close_footer strong {
 }
 
 .image-item .imgTools {
-	display: flex;
-	flex-direction: row;
-	align-items: end;
+	position: relative;
 	height: 100%;
 	background-color: #666;
 	opacity: 0;
@@ -561,7 +611,7 @@ footer.special #close_footer strong {
 }
 
 .image-item .imgTools > div {
-	position: relative;
+	position: absolute;
 	opacity: 0.7;
 	cursor: pointer;
 }
@@ -585,6 +635,8 @@ footer.special #close_footer strong {
 }
 
 .image-item .art_prev {
+	bottom: 0;
+	left: 0;
 	width: 50px;
 	height: 50px;
 	background-color: #333;
@@ -592,14 +644,26 @@ footer.special #close_footer strong {
 }
 
 .image-item .art_next {
+	bottom: 0;
+	right: 0;
 	width: 50px;
 	height: 50px;
 	background-color: #333;
 	border-radius: 4px 0px 0px 0px;
 }
 
+.image-item .art_edit {
+	top: 0;
+	right: 0;
+	width: 50px;
+	height: 50px;
+	background-color: #333;
+	border-radius: 0px 0px 0px 4px;
+}
+
 .image-item .art_star {
-	flex-grow: 1;
+	top: 0;
+	left: 64px;
 	width: 128px;
 	height: 100%;
 }
@@ -709,6 +773,11 @@ footer.special #close_footer strong {
 
 .image-item.favorite .art_star span {
 	filter: grayscale(0%);
+}
+
+.image-item.edit_mode {
+	border: 1px solid #f00;
+	box-shadow: 0 0px 15px #ff0000b8;
 }
 
 #layout.edit_mode #toggles {

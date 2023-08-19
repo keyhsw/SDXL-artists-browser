@@ -7,17 +7,20 @@ var timer;
 var artTypes = ['🎨','🧑','🏞️'];
 var imgTypeShown = 0;
 var log = '';
-var editMode = false;
+var editMostUsedMode = false;
 var windowWidth = 0;
 var gutterStartPosX, mouseStartPosX, gutterEndPercentX
 var style, stylesheet, imgHoverRule;
-
+var tagsConcatenated = new Set();
+var editedArtists = new Set();
 //
 //
 //
 // functions
 function startUp() {
+	updateTagsConcatenated();
 	updateFooter();
+	loadEditedArtists();
 	insertArtists();
 	insertCheckboxesFromArtistsData();
 	insertCheckboxesFromCategories();
@@ -37,6 +40,22 @@ function startUp() {
 	getStyleRuleForDrag();
 }
 
+function updateTagsConcatenated() {
+	// this set is used for tag editing mode
+	for (var i=0, il=tagCategories.length; i<il; i++) {
+		for (var j=1, jl=tagCategories[i].length; j<jl; j++) {
+			// j=1 because we don't want to include the category name
+			// we also exclude tags that have the in the format of "added-YYYY-MM-DD"
+			let tag = tagCategories[i][j].replace(/, added-(\d|-)*/g,'');
+			tagsConcatenated.add(tag);
+		}
+	}
+	let tagsConcatenatedArray = Array.from(tagsConcatenated).sort(function (a, b) {
+		return a.toLowerCase().localeCompare(b.toLowerCase());
+	});
+	tagsConcatenated = new Set(tagsConcatenatedArray);
+}
+
 function updateFooter() {
 	let proto = window.location.protocol;
 	if (proto.startsWith('http')) {
@@ -48,6 +67,39 @@ function updateFooter() {
 	}
 }
 
+function loadEditedArtists() {
+	const arr = JSON.parse(localStorage.getItem('editedArtists')) || [];
+	editedArtists = new Set(arr);
+	let proto = window.location.protocol;
+	let anyChanges = false;
+	for (let i=0, il=artistsData.length; i<il; i++) {
+		// find match in artistsData if first and last names match
+		let artist = artistsData[i];
+		let artistFound = Array.from(editedArtists).find(editedA => editedA[0] === artist[0] && editedA[1] === artist[1]);
+		if(artistFound) {
+			// check if the edit now matches the original
+			let match = true;
+			for (let j=0, jl=artist.length; j<jl; j++) {
+				if (artist[j] !== artistFound[j]) {
+					match = false;
+				}
+			}
+			if(match) {
+				anyChanges = true;
+				editedArtists.delete(artistFound);
+			} else {
+				if (!proto.startsWith('http')) {
+					// if this is a local file, then update artistData with the saved edits
+					artistsData[i] = artistFound;
+				}
+			}
+		}
+	}
+	if(anyChanges) {
+		localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
+	}
+}
+
 function insertArtists() {
 	// artistsData is defined in the artists_and_tags.js file
 	let missingFiles = '';
@@ -56,7 +108,7 @@ function insertArtists() {
 		var last = artist[0];
 		var first = artist[1];
 		var tags1 = artist[2].replaceAll('|', ' ').toLowerCase(); // for classes
-		var tags2 = artist[2].replaceAll('|', ', ').toLowerCase(); // for display
+		var tags2 = artist[2].replaceAll('|', ', '); // for display
 		// class names can't start with a number, but some tags do
 		// in these cases we prepend the class with 'qqqq-'
 		tags1 = tags1.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
@@ -82,7 +134,7 @@ function insertArtists() {
 		h3.title = 'copy to clipboard';
 		var h4 = document.createElement('h4');
 		h4.textContent = tags2;
-		h4.title = 'check/uncheck these tags';
+		h4.title = 'copy to clipboard';
 		itemHeader.appendChild(h4);
 		itemDiv.appendChild(itemHeader);
 		var box = document.createElement('div');
@@ -106,6 +158,12 @@ function insertArtists() {
 		artNextSpan.textContent = '🏞️';
 		artNext.appendChild(artNextSpan);
 		imgTools.appendChild(artNext);
+		var artEdit = document.createElement('div');
+		artEdit.className = 'art_edit';
+		var artEditSpan = document.createElement('span');
+		artEditSpan.textContent = '✍️';
+		artEdit.appendChild(artEditSpan);
+		imgTools.appendChild(artEdit);
 		box.appendChild(imgTools);
 		var imgBox = document.createElement('div');
 		imgBox.className = 'imgBox';
@@ -438,11 +496,16 @@ function updateArtistsCountPerTag(whoCalled) {
 				if(deprecatedCheckbox.checked) {
 					count = filteredDivs.length;
 				} else {
-				 	count = matchingDivs.length;
+					count = matchingDivs.length;
 				}
 				checkbox.parentNode.classList.remove('no_matches');
 				checkbox.parentNode.querySelector('input').disabled = false;
-				checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
+				// editing tags can cause count to be null
+				if(count) {
+					checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
+				} else {
+					checkbox.parentNode.querySelector('.count').textContent = ' - ' + 'edited';
+				}
 			}
 		});
 		updateArtistsCountPerCategory();
@@ -463,7 +526,7 @@ function updateArtistsCountPerTag(whoCalled) {
 				if(deprecatedCheckbox.checked) {
 					count = filteredDivs.length;
 				} else {
-				 	count = matchingDivs.length;
+					count = matchingDivs.length;
 				}
 				if(count == 0) {
 					checkbox.parentNode.classList.add('no_matches');
@@ -705,9 +768,10 @@ function showAbout() {
 }
 
 function showExport() {
-	document.getElementById('export').classList.add('shown');
 	hideToggles();
-	var textarea = document.getElementById('export').getElementsByTagName('textarea')[0];
+	document.getElementById('export').classList.add('shown');
+	// favorites
+	var textareaF = document.getElementById('export_favorites_list');
 	var favorites = localStorage.getItem('favoritedArtists');
 	var value = '';
 	if(favorites) {
@@ -720,21 +784,54 @@ function showExport() {
 			}
 		}
 		value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).  It must not contain any other more than one set of curly brackets.\r\n\r\n' + favorites;
-		textarea.value = value;
+		textareaF.value = value;
 	} else {
 		value += 'You haven\'t favorited any artists yet.\r\n\r\n';
 		value += 'To import favorites that you exported earlier, paste the text into this text box, and click "import".';
 	}
+	// edits
+	var textareaE = document.getElementById('export_edits_list');
+	let editedArtistsArr = Array.from(editedArtists);
+	if(editedArtistsArr.length > 0) {
+		value = 'Post a comment with these edits on Hugging Face:\r\n\r\n';
+		for(i=0,il=editedArtistsArr.length;i<il;i++) {
+			let edit = editedArtistsArr[i];
+			value += '["'+edit[0]+'","'+edit[1]+'","'+edit[2]+'",'+edit[3]+'],\r\n';
+		}
+	} else {
+		value = '';
+	}
+	textareaE.value = value;
+	// db
+	var textareaA = document.getElementById('export_artists_list');
+	value = '';
+	for(i=0,il=artistsData.length;i<il;i++) {
+		let edit = artistsData[i];
+		value += '["'+edit[0]+'","'+edit[1]+'","'+edit[2]+'",'+edit[3]+'],\r\n';
+	}
+	textareaA.value = value;
 }
 
-function copyExportToClipboard() {
-	var favorites = document.getElementById('export').getElementsByTagName('textarea')[0].value;
-	navigator.clipboard.writeText(favorites);
-	doAlert('Favorites copied to clipboard!',1);
+function exportTextarea(type) {
+	let contents = '';
+	if(type == 'favorites') {
+		contents = document.getElementById('export_favorites_list').value;
+	} else if(type == 'edits') {
+		contents = document.getElementById('export_edits_list').value;
+	} else if(type == 'artists') {
+		contents = document.getElementById('export_artists_list').value;
+	}
+	navigator.clipboard.writeText(contents)
+		.then(() => {
+			doAlert(type + ' copied to clipboard!',1);
+		})
+		.catch(() => {
+			doAlert('😭😭 Can\'t access clipboard',1);
+		});
 }
 
 function importFavorites() {
-	let el = document.getElementById('export').getElementsByTagName('textarea')[0];
+	let el = document.getElementById('export_favorites_list');
 	let favorites = el.value;
 	let startCount = (favorites.match(/{/g) || []).length;
 	let endCount = (favorites.match(/}/g) || []).length;
@@ -999,9 +1096,9 @@ function storeMostUsedState(label) {
 
 function enterExitEditMostUsedMode(doExit) {
 	let inputs = Array.from(document.querySelectorAll('input'));
-	if(editMode || doExit) {
+	if(editMostUsedMode || doExit) {
 		// exit edit mode
-		editMode = false;
+		editMostUsedMode = false;
 		document.getElementById('edit_most_used').textContent = 'edit';
 		document.getElementById('layout').classList.remove('edit_mode');
 		inputs.forEach(function(input) {
@@ -1018,7 +1115,7 @@ function enterExitEditMostUsedMode(doExit) {
 		updateArtistsCountPerCategory();
 	} else {
 		// enter edit mode
-		editMode = true;
+		editMostUsedMode = true;
 		document.getElementById('edit_most_used').textContent = 'exit editing';
 		document.getElementById('layout').classList.add('edit_mode');
 		inputs.forEach(function(input) {
@@ -1166,12 +1263,23 @@ function copyStuffToClipboard(item,stuff) {
 	if(stuff == 'name') {
 		var str = item.closest('.image-item').getElementsByClassName('firstN')[0].textContent +
 		' ' + item.closest('.image-item').getElementsByClassName('lastN')[0].textContent;
-		doAlert('Copied to name clipboard!',1);
+		navigator.clipboard.writeText(str)
+			.then(() => {
+				doAlert('Copied to name clipboard!',1);
+			})
+			.catch(() => {
+				doAlert('😭😭 Can\'t access clipboard',1);
+			});
 	} else if(stuff == 'tags') {
 		var str = item.textContent;
-		doAlert('Copied to tags clipboard!',1);
+		navigator.clipboard.writeText(str)
+			.then(() => {
+				doAlert('Copied to tags clipboard!',1);
+			})
+			.catch(() => {
+				doAlert('😭😭 Can\'t access clipboard',1);
+			});
 	}
-	navigator.clipboard.writeText(str);
 }
 
 function toggleThisArtistsTags(tagsStr) {
@@ -1345,6 +1453,267 @@ function movePartition(e) {
 	}
 }
 
+function editTagsClicked(clickedImageItem) {
+	let indicatorEl = clickedImageItem.querySelector('.art_edit span');
+	if(indicatorEl.textContent == '✍️') {
+		let artistWasInEditMode = editTagsFindArtistInEditMode(clickedImageItem);
+		if(!artistWasInEditMode) {
+			doAlert('Read help ⁉️ first',1);
+		}
+		editTagsEnterEditMode(clickedImageItem);
+	} else {
+		editTagsFindArtistInEditMode();
+	}
+}
+
+function editTagsEnterEditMode(imageItem) {
+	// enter edit mode for item
+	let indicatorEl = imageItem.querySelector('.art_edit span');
+	indicatorEl.textContent = '❌';
+	let tagArea = imageItem.querySelector('h4');
+	tagArea.title = '';
+	tagArea.classList.add('edit_mode');
+	imageItem.classList.add('edit_mode');
+	let firstN = imageItem.querySelector('.firstN').textContent;
+	let lastN = imageItem.querySelector('.lastN').textContent;
+	let tagList = [];
+	for (let i=0, il=artistsData.length; i<il; i++) {
+		let artist = artistsData[i];
+		if(artist[0] == lastN && artist[1] == firstN) {
+			let tagListStr = artist[2].replace(/\|added-(\d|-)*/g,'');
+			tagList = tagListStr.split('|');
+			tagList.unshift(artist[3]);
+			break;
+		}
+	}
+	tagArea.textContent = '';
+	for (var i=0, il=tagList.length; i<il; i++) {
+		addTagToEditor(tagArea,tagList[i]);
+	}
+	var adder = document.createElement('input');
+	adder.type = 'text';
+	adder.name = 'new_tag';
+	adder.placeholder = 'add another tag';
+	adder.dataset.match = '';
+	adder.style.marginTop = '10px';
+	tagArea.appendChild(adder);
+	// add event listeners
+	adder.addEventListener('focus', function(e) {
+		var helper = document.createElement('span');
+		helper.id = 'edit_mode_helper';
+		this.parentNode.appendChild(helper);
+	});
+	adder.addEventListener('keyup', function(e) {
+		searchForTags(this,e,tagList);
+	});
+	adder.addEventListener('blur', function(e) {
+		this.value = '';
+		window.setTimeout(function() {
+			// need delay to allow helper row to be clicked
+			if(document.getElementById('edit_mode_helper')) {
+				document.getElementById('edit_mode_helper').remove();
+			}
+		}, 100);
+	});
+}
+
+function editTagsFindArtistInEditMode(clickedImageItem) {
+	let imageItems = document.querySelectorAll('.image-item');
+	imageItems.forEach(function(imageItem) {
+		if(imageItem !== clickedImageItem) {
+			// for any other other artist in editing mode, exit
+			let indicatorEl = imageItem.querySelector('.art_edit span');
+			if(indicatorEl.textContent == '❌') {
+				editTagsExitEditMode(imageItem);
+				// let caller know that an artistWasInEditMode
+				return true;
+			}
+		}
+	});
+}
+
+function editTagsExitEditMode(imageItem) {
+	// exit item edit mode for item
+	let indicatorEl = imageItem.querySelector('.art_edit span');
+	indicatorEl.textContent = '✍️';
+	let tagArea = imageItem.querySelector('h4');
+	tagArea.title = 'copy to clipboard';
+	tagArea.classList.remove('edit_mode');
+	imageItem.classList.remove('edit_mode');
+	let tagList = '';
+	let tagLabels = tagArea.querySelectorAll('label');
+	tagLabels.forEach(function(label) {
+		let input = label.querySelector('input');
+		if(input.checked) {
+			tagList += input.value + ', ';
+			label.remove();
+		}
+	});
+	tagArea.querySelector('input').remove();
+	tagArea.textContent = tagList.substring(0,tagList.length-2);
+}
+
+function addTagToEditor(tagArea, tagName) {
+	var label = document.createElement('label');
+	var input = document.createElement('input');
+	input.type = 'checkbox';
+	if(tagName === true || tagName === false) {
+		input.name = 'known'
+		input.value = 'known';
+		// in db, true = hide unknown, but here true = known
+		if(tagName) {
+			input.checked = false;
+		} else {
+			input.checked = true;
+		}
+		tagName = 'known to SDXL'
+	} else {
+		input.name = tagName
+		input.value = tagName;
+		input.checked = true;
+	}
+	var span = document.createElement('span');
+	span.textContent = tagName;
+	label.appendChild(input);
+	label.appendChild(span);
+	tagArea.appendChild(label);
+	// event listener
+	input.addEventListener('change', function(e) {
+		saveTagsForArtist(tagArea);
+	});
+}
+
+function searchForTags(input, event, tagList) {
+	if(input.dataset.match != '') {
+		event.preventDefault();
+		if(event.key === 'Backspace' || event.keyCode === 8) {
+			input.value = '';
+			input.dataset.match = '';
+		} else if (event.key === 'Return' || event.keyCode === 13) {
+			input.value = '';
+			input.dispatchEvent(new Event('blur'));
+			insertTag(input,input.dataset.match);
+			input.dataset.match = '';
+		} else {
+			input.value = input.dataset.match;
+		}
+		return;
+	}
+	let helper = document.getElementById('edit_mode_helper');
+	helper.innerHTML = '';
+	let matches = 0;
+	let match = '';
+	let range = 'start'
+	tagsConcatenated.forEach(function(tag) {
+		for (var i=0, il=tagList.length; i<il; i++) {
+			if(tag.toLowerCase() == tagList[i].toLowerCase()) {
+				return;
+			}
+		}
+		if(tag.toLowerCase().indexOf(input.value.toLowerCase()) == 0) {
+			range = 'continue';
+			let matchSpan = document.createElement('span');
+			matchSpan.textContent = tag;
+			helper.appendChild(matchSpan);
+			matchSpan.addEventListener('click', function(e) {
+				insertTag(e.target,e.target.textContent);
+			});
+			match = tag;
+			matches++;
+		} else {
+			if(range != 'start') {
+				range = 'stop';
+			}
+		}
+		if(range == 'stop') {
+			return;
+		}
+	});
+	if(matches == 1) {
+		input.value = match;
+		event.preventDefault();
+		input.dataset.match = match;
+	}
+}
+
+function insertTag(matchSpan,tag) {
+	let tagArea = matchSpan.closest('h4');
+	let input = tagArea.querySelector('input[type="text"]');
+	addTagToEditor(tagArea,tag);
+	tagArea.appendChild(input);
+	document.getElementById('edit_mode_helper').remove();
+	saveTagsForArtist(tagArea);
+	timer = setTimeout(focusInput.bind(this, input), 100);
+}
+
+function focusInput(input) {
+	input.focus();
+}
+
+function saveTagsForArtist(tagArea) {
+	// get new tags
+	let tagLabels = tagArea.querySelectorAll('label');
+	let newTagsArr = [];
+	let artistKnown = true;
+	tagLabels.forEach(function(label) {
+		let input = label.querySelector('input');
+		if(input.value == 'known') {
+			artistKnown = input.checked;
+		} else {
+			if(input.checked) {
+				newTagsArr.push(input.value);
+			}
+		}
+	});
+	// find match in artistsData
+	let firstN = tagArea.closest('.image-item').querySelector('.firstN').textContent;
+	let lastN = tagArea.closest('.image-item').querySelector('.lastN').textContent;
+	let edit = [];
+	for (let i=0, il=artistsData.length; i<il; i++) {
+		let artist = artistsData[i];
+		if(artist[0] == lastN && artist[1] == firstN) {
+			// artists can have a tag in the format of "added-YYYY-MM-DD"
+			// this was stripped earlier, so we need to add it back in
+			let oldTagsArr = artist[2].split('|');
+			for (let j=oldTagsArr.length-1; j>=0; j--) {
+				// loop backwards because it should be at the end
+				if(oldTagsArr[j].match(/added-(\d|-)*/)) {
+					newTagsArr.push(oldTagsArr[j]);
+				}
+			}
+			let newTagsStr = newTagsArr.join('|');
+			artist[2] = newTagsStr;
+			// in db, true = hide unknown, but here true = known
+			if(artistKnown) {
+				artist[3] = false;
+			} else {
+				artist[3] = true;
+			}
+			edit = artist;
+			break;
+		}
+	}
+	// replace old edits with new edits
+	for (let i=0, il=editedArtists.length; i<il; i++) {
+		let oldEdit = editedArtists[i];
+		if(edit[0] == oldEdit[0] && edit[1] == oldEdit[1]) {
+			editedArtists.delete(oldEdit);
+		}
+	}
+	editedArtists.add(edit)
+	// save edited artists locally
+	localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
+}
+
+function deleteAllEdits() {
+	if(confirm('This will delete all of your edits.  Are you sure?')) {
+		localStorage.removeItem('editedArtists');
+		alert('official database restored!  this page will reload...');
+		location.reload();
+	} else {
+		alert('restore was cancelled!');
+	}
+}
 //
 //
 //
@@ -1452,13 +1821,25 @@ document.addEventListener("DOMContentLoaded", function() {
 		storeOptionsState();
 	});
 	// add information event listeners
-	var export_to_clipboard = document.getElementById('export_to_clipboard');
-	export_to_clipboard.addEventListener('click', function(e) {
-		copyExportToClipboard();
+	var export_favorites = document.getElementById('export_favorites_button');
+	export_favorites.addEventListener('click', function(e) {
+		exportTextarea('favorites');
 	});
-	var export_import = document.getElementById('export_import');
-	export_import.addEventListener('click', function(e) {
+	var import_favorites = document.getElementById('import_favorites_button');
+	import_favorites.addEventListener('click', function(e) {
 		importFavorites();
+	});
+	var export_edits = document.getElementById('export_edits_button');
+	export_edits.addEventListener('click', function(e) {
+		exportTextarea('edits');
+	});
+	var delete_edits = document.getElementById('delete_edits_button');
+	delete_edits.addEventListener('click', function(e) {
+		deleteAllEdits();
+	});
+	var export_artists = document.getElementById('export_artists_button');
+	export_artists.addEventListener('click', function(e) {
+		exportTextarea('artists');
 	});
 	var information = document.querySelectorAll('.information');
 	information.forEach(function(element) {
@@ -1502,13 +1883,14 @@ document.addEventListener("DOMContentLoaded", function() {
 		if (event.key === 'Escape' || event.keyCode === 27) {
 			// event.key for modern browsers, event.keyCode for older ones
 			enterExitEditMostUsedMode('exit');
+			editTagsFindArtistInEditMode();
 			hideInformation();
 		}
 	});
 	var labels = document.querySelectorAll('label');
 	Array.from(labels).forEach(function(label) {
 		label.addEventListener('click', function(e) {
-			if(editMode) {
+			if(editMostUsedMode) {
 				addRemoveIsMostUsed(this);
 				storeMostUsedState(this);
 			}
@@ -1540,12 +1922,17 @@ document.addEventListener("DOMContentLoaded", function() {
 			rotatePromptsImages();
 			storeOptionsState();
 		});
+		imageItem.querySelector('.art_edit').addEventListener('click', function(e) {
+			editTagsClicked(this.closest('.image-item'));
+		});
 		imageItem.getElementsByTagName('h3')[0].addEventListener('click', function(e) {
 			copyStuffToClipboard(this,'name');
 		});
 		imageItem.getElementsByTagName('h4')[0].addEventListener('click', function(e) {
-			copyStuffToClipboard(this, 'tags')
-			// toggleThisArtistsTags(this.textContent);
+			if(!this.classList.contains('edit_mode')) {
+				copyStuffToClipboard(this, 'tags')
+				// toggleThisArtistsTags(this.textContent);
+			}
 		});
 	});
 	// add gutter event listener

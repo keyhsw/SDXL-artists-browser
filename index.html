@@ -22,6 +22,7 @@
 						<li><strong>tags</strong> toggles those checkmarks</li>
 						<li><strong>star</strong> marks them as favorite</li>
 						<li>🎨, 🧑, and 🏞️ switches the prompt/image</li>
+						<li>✍️ enters tag-editing mode, see below</li>
 					</ul>
 					<h3>Permissive filter</h3>
 					<ul>
@@ -42,9 +43,13 @@
 					</ul>
 					<h3>When using Stable Diffusion</h3>
 					<ul>
-						<li>Reproduce these styles with the prompt with "by {Artist full name}, ...."
+						<li>Reproduce these styles with the prompt with "by {Artist full name}, ...."</li>
 						<li>Adding the style tags to the prompt can also help</li>
 						<li>You can combine the styles of two are more artists</li>
+					</ul>
+					<h3>✍️ Tag-editing is only for offline use!</h3>
+					<ul>
+						<li>If you are viewing this from Hugging Face, your tag edits won't be applied.  They'll be saved and applied if you've downloaded the repository and are viewing your local file.  In both cases, your edits will be available for export 📥 as text.  If you want to suggestions for tag improvements for everyone's benefit, then edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
 					</ul>
 				</div>
 			</div>
@@ -104,11 +109,22 @@
 			</div>
 			<div id="export" class="information">
 				<div>
-					<h2>Export/Import favorited artists</h2>
-					<textarea placeholder="You haven't favorited any artists yet."></textarea>
+					<h3>Export/Import favorited artists</h2>
+					<textarea id="export_favorites_list" placeholder="You haven't favorited any artists yet."></textarea>
 					<div class="buttons">
-						<div id="export_to_clipboard">copy to clipboard</div>
-						<div id="export_import">import</div>
+						<div id="export_favorites_button">copy to clipboard</div>
+						<div id="import_favorites_button">import</div>
+					</div>
+					<h3>Export tag-edits to send to author</h2>
+					<textarea id="export_edits_list" placeholder="You haven't edited any tags yet."></textarea>
+					<div class="buttons">
+						<div id="export_edits_button">copy to clipboard</div>
+						<div id="delete_edits_button">restore official database</div>
+					</div>
+					<h3>Export database</h2>
+					<textarea id="export_artists_list"></textarea>
+					<div class="buttons">
+						<div id="export_artists_button">copy to clipboard</div>
 					</div>
 				</div>
 			</div>
@@ -186,6 +202,7 @@
 							<div class="art_prev"></div>
 							<div class="art_star"></div>
 							<div class="art_next"></div>
+							<div class="art_edit"></div>
 						</div>
 						<div class="imgBox">
 							<img alt="First Last - art" src="images/SDXL_1_0/First_Last-artwork.jpg">
