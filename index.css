@@ -36,7 +36,7 @@ h4 {
 	position: fixed;
 	top: 0;
 	left: 0;
-	width: calc(40% - 20px);
+	width: calc(60% - 20px);
 	height: calc(100% - 80px);
 	display: flex;
 	flex-direction: column;
@@ -52,7 +52,7 @@ h4 {
 	position: fixed;
 	z-index: 1;
 	top: 0;
-	left: 40%;
+	left: 60%;
 	width: 50px;
 	height: calc(100% - 40px);
 	flex-shrink: 0;
@@ -108,7 +108,7 @@ h4 {
 	flex-wrap: wrap;
 	align-items: flex-start;
 	justify-content: space-around;
-	margin-left: calc(40% + 50px);
+	margin-left: calc(60% + 50px);
 	margin-top: 20px;
 	margin-bottom: 20px;
 	width: 100%;
@@ -703,6 +703,7 @@ footer.special #close_footer strong {
 	z-index: 1;
 	top: 0px;
 	left: 20px;
+	/* this will be overwritten by stylesheet added by JS */
 	width: 40%;
 	cursor: not-allowed;
 	transform: translateY(20px);

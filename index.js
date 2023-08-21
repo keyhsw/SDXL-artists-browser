@@ -10,7 +10,9 @@ var log = '';
 var editMostUsedMode = false;
 var windowWidth = 0;
 var gutterStartPosX, mouseStartPosX, gutterEndPercentX
-var style, stylesheet, imgHoverRule;
+var style, tempStyle, stylesheet, tempStylesheet, imgHoverRule, teaseRules;
+var theTime = new Date;
+var startUpTime;
 var tagsConcatenated = new Set();
 var editedArtists = new Set();
 //
@@ -37,7 +39,8 @@ function startUp() {
 	loadMostUsedTags();
 	updateArtistsCountPerCategory();
 	showHideLowCountTags();
-	getStyleRuleForDrag();
+	makeStyleRuleForDrag();
+	teasePartition();
 }
 
 function updateTagsConcatenated() {
@@ -476,70 +479,72 @@ function rotatePromptsImages() {
 }
 
 function updateArtistsCountPerTag(whoCalled) {
-	var permissiveCheckbox = document.querySelector('input[name="mode"]');
-	var deprecatedCheckbox = document.querySelector('input[name="deprecated"]');
-	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-	var divs = document.querySelectorAll('.image-item');
-	var hiddenDivs = document.querySelectorAll('.image-item.hidden');
-	var deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
-	var count = 0;
-	if(permissiveCheckbox.checked || whoCalled == 'start') {
-		// on page load, we need to add all the counts first
-		checkboxes.forEach(function(checkbox) {
-			let isTop = checkbox.parentNode.classList.contains('top_control');
-			if(!isTop) {
-				var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
-				var matchingDivs = document.querySelectorAll('.image-item.' + theClass);
-				let filteredDivs = Array.from(matchingDivs).filter(mat => {
-					return !Array.from(deprecatedDivs).some(dep => dep === mat);
-				});
-				if(deprecatedCheckbox.checked) {
-					count = filteredDivs.length;
-				} else {
-					count = matchingDivs.length;
-				}
-				checkbox.parentNode.classList.remove('no_matches');
-				checkbox.parentNode.querySelector('input').disabled = false;
-				// editing tags can cause count to be null
-				if(count) {
-					checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
-				} else {
-					checkbox.parentNode.querySelector('.count').textContent = ' - ' + 'edited';
-				}
-			}
-		});
-		updateArtistsCountPerCategory();
-	}
-	if(!permissiveCheckbox.checked) {
-		checkboxes.forEach(function(checkbox) {
-			let isTop = checkbox.parentNode.classList.contains('top_control');
-			if(!isTop) {
-				count = 0;
-				// class names can't start with a number, but some tags do
-				// in these cases prepending with 'qqqq-'
-				var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
-				// for strict mode, for each checkbox, only count artists with a classes matching all checked checkboxes
-				var matchingDivs = document.querySelectorAll('.image-item.' + theClass + ':not(.hidden)');
-				let filteredDivs = Array.from(matchingDivs).filter(mat => {
-					return !Array.from(deprecatedDivs).some(dep => dep === mat);
-				});
-				if(deprecatedCheckbox.checked) {
-					count = filteredDivs.length;
-				} else {
-					count = matchingDivs.length;
-				}
-				if(count == 0) {
-					checkbox.parentNode.classList.add('no_matches');
-					checkbox.parentNode.querySelector('input').disabled = true;
-				} else {
+	window.setTimeout(function() {
+		var permissiveCheckbox = document.querySelector('input[name="mode"]');
+		var deprecatedCheckbox = document.querySelector('input[name="deprecated"]');
+		var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+		var divs = document.querySelectorAll('.image-item');
+		var hiddenDivs = document.querySelectorAll('.image-item.hidden');
+		var deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
+		var count = 0;
+		if(permissiveCheckbox.checked || whoCalled == 'start') {
+			// on page load, we need to add all the counts first
+			checkboxes.forEach(function(checkbox) {
+				let isTop = checkbox.parentNode.classList.contains('top_control');
+				if(!isTop) {
+					var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
+					var matchingDivs = document.querySelectorAll('.image-item.' + theClass);
+					let filteredDivs = Array.from(matchingDivs).filter(mat => {
+						return !Array.from(deprecatedDivs).some(dep => dep === mat);
+					});
+					if(deprecatedCheckbox.checked) {
+						count = filteredDivs.length;
+					} else {
+						count = matchingDivs.length;
+					}
 					checkbox.parentNode.classList.remove('no_matches');
 					checkbox.parentNode.querySelector('input').disabled = false;
+					// editing tags can cause count to be null
+					if(count) {
+						checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
+					} else {
+						checkbox.parentNode.querySelector('.count').textContent = ' - ' + 'edited';
+					}
 				}
-				checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
-			}
-		});
-	}
-	updateCountOfAllArtistsShown(divs, hiddenDivs);
+			});
+			updateArtistsCountPerCategory();
+		}
+		if(!permissiveCheckbox.checked) {
+			checkboxes.forEach(function(checkbox) {
+				let isTop = checkbox.parentNode.classList.contains('top_control');
+				if(!isTop) {
+					count = 0;
+					// class names can't start with a number, but some tags do
+					// in these cases prepending with 'qqqq-'
+					var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
+					// for strict mode, for each checkbox, only count artists with a classes matching all checked checkboxes
+					var matchingDivs = document.querySelectorAll('.image-item.' + theClass + ':not(.hidden)');
+					let filteredDivs = Array.from(matchingDivs).filter(mat => {
+						return !Array.from(deprecatedDivs).some(dep => dep === mat);
+					});
+					if(deprecatedCheckbox.checked) {
+						count = filteredDivs.length;
+					} else {
+						count = matchingDivs.length;
+					}
+					if(count == 0) {
+						checkbox.parentNode.classList.add('no_matches');
+						checkbox.parentNode.querySelector('input').disabled = true;
+					} else {
+						checkbox.parentNode.classList.remove('no_matches');
+						checkbox.parentNode.querySelector('input').disabled = false;
+					}
+					checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
+				}
+			});
+		}
+		updateCountOfAllArtistsShown(divs, hiddenDivs);
+	},0);
 }
 
 function updateArtistsCountPerCategory() {
@@ -1418,7 +1423,7 @@ function cleanupEventListener(imageItem) {
 	layout.removeEventListener('mousemove', imageItem.boundMouseMoveFunc);
 }
 
-function getStyleRuleForDrag() {
+function makeStyleRuleForDrag() {
 	style = document.createElement('style');
 	document.head.appendChild(style);
 	stylesheet = style.sheet;
@@ -1433,7 +1438,7 @@ function movePartition(e) {
 	} else if(newPos > window.innerWidth - 350) {
 		newPos = window.innerWidth - 350;
 	}
-	gutterEndPercentX = (newPos / window.innerWidth) * 100;
+	let gutterEndPercentX = (newPos / window.innerWidth) * 100;
 	document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
 	document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
 	document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
@@ -1451,6 +1456,29 @@ function movePartition(e) {
 		// IE?
 		document.selection.empty();
 	}
+}
+
+function teasePartition() {
+	tempStyle = document.createElement('style');
+	tempStyle.id = 'teaseDragStyle';
+	document.head.appendChild(tempStyle);
+	tempStylesheet = tempStyle.sheet;
+	// add temporary transitions
+	tempStylesheet.insertRule('#toggles { transition: width 200ms ease-out; }', 0);
+	tempStylesheet.insertRule('#gutter { transition: left 200ms ease-out; }', 0);
+	tempStylesheet.insertRule('#image-container { transition: margin-left 200ms ease-out, opacity 200ms 200ms linear; }', 0);
+	document.getElementById('image-container').style.opacity = 0;
+	// set position
+	window.setTimeout(function() {
+		let gutterEndPercentX = 40;
+		document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
+		document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
+		document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
+		document.getElementById('image-container').style.opacity = '';
+	},600);
+	window.setTimeout(function() {
+		document.getElementById('teaseDragStyle').remove();
+	},1000);
 }
 
 function editTagsClicked(clickedImageItem) {
@@ -1735,6 +1763,7 @@ document.addEventListener("DOMContentLoaded", function() {
 	//
 	//
 	startUp();
+	startUpTime = theTime.getTime();
 	//
 	//
 	// add checkbox event listeners
@@ -1900,9 +1929,14 @@ document.addEventListener("DOMContentLoaded", function() {
 	var imageItems = document.getElementsByClassName('image-item');
 	Array.from(imageItems).forEach(function(imageItem) {
 		imageItem.addEventListener('mouseenter', function(e) {
-			hideToggles();
-			loadLargerImages(e.target);
-			timer = setTimeout(hideLargerImageBackup.bind(this, this), 200);
+			let imgTime = new Date;
+			let imgHoverTime = imgTime.getTime();
+			if(imgHoverTime > startUpTime + 1000) {
+				// this gives time for the startup animation to finish
+				hideToggles();
+				loadLargerImages(e.target);
+				timer = setTimeout(hideLargerImageBackup.bind(this, this), 200);
+			}
 		});
 		imageItem.addEventListener('mouseleave', function(e) {
 			showToggles();
