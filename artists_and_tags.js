@@ -174,7 +174,7 @@ var artistsData = [
 ["Velázquez","Diego","baroque|history|oil-painting|portraits|realism|religion|royalty|Spanish|added-2023-08-08",false],
 ["Vermeer","Johannes","baroque|domestic-scenes|Dutch|genre-scenes|illusion|interiors|portraits|added-2023-08-08",false],
 ["Ware","Chris","American|cartoon|characters|comics|graphic-novel|modern-life|slice-of-life|added-2023-08-08",false],
-["Watterson","Bill","American|characters|friendship|loneliness|melancholy|nostalgia|added-2023-08-08",false],
+["Watterson","Bill","American|characters|friendship|loneliness|melancholy|nostalgia|childhood|added-2023-08-08",false],
 ["Whistler","James Abbott McNeill","American|drawing|etching|interiors|low-contrast|portraits|tonalism|whimsical|added-2023-08-08",false],
 ["Woodring","Jim","aliens|American|characters|comics|creatures|dream-like|fantasy|pen-and-ink|psychedelic|surreal|added-2023-08-08",false],
 ["Nielsen","Kay","American|Danish|elegant|exoticism|Fantasy|fantasy|illustration|kids-book|orientalism|painting|whimsical|added-2023-08-08",false],
@@ -1033,8 +1033,8 @@ var artistsData = [
 ["Van Hove","Francine","drawing|female-figures|expressionism|slice-of-life|added-2023-08-20",false],
 ["Cho","Frank","comics|superheroes|drawing|colorful|fantasy|added-2023-08-20",false],
 ["Woelfel","Brandon","photography|neon|urban-life|shallow-depth-of-field|nightlife|cityscapes|added-2023-08-20",false],
-// need images
-// ["Bluth","Don","contemporary|animation|cartoon|fantasy|whimsical|colorful|added-2023-08-20",false],
+["Bluth","Don","contemporary|animation|film|cartoon|fantasy|whimsical|colorful|added-2023-08-20",false],
+["McBride","Angus","illustration|battle-scenes|horses|history|fantasy|British|added-2023-08-20",false],
 ];
 
 // first category must be 'important' and last must be 'other' or things won't work

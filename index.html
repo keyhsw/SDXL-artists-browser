@@ -71,13 +71,13 @@
 					<h3>Image parameters</h3>
 					<ul>
 						<li>
-							All: Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 10, Seed: 42, Size: 1024x1024, Model hash: 31e35c80fc, Model: sd_xl_base_1.0, Version: v1.5.1 (no refiner pass)
+							All: Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 10, Seed: 42 or 43, Size: 1024x1024, Model hash: 31e35c80fc, Model: sd_xl_base_1.0, Version: v1.5.1 (no refiner pass)
 						</li>
 						<li>
 						 	🎨 Prompt: by {Artist full name}, artwork image, Negative prompt: frame, border, text, signature
 						</li>
 						<li>
-							🧑 Prompt: by {Artist full name}, image of a gently smiling, portrait of a person, head and torso, sitting in their room, Negative prompt: self-portrait, outside, frame, border, text, signature
+							🧑 Prompt: by {Artist full name}, image of a gently smiling face, portrait of a person, head and torso, sitting in their room, Negative prompt: self-portrait, outside, frame, border, text, signature
 						</li>
 						<li>
 							🏞️ Prompt: by {Artist full name}, image of a landscape, outdoor natural scenery, water, bridge, Negative prompt: people, person, frame, border, text, signature
@@ -94,10 +94,10 @@
 						<li>I'm not affiliated with Stability AI</li>
 						<li>Use at your own risk 🧟</li>
 					</ul>
-					<h3>What's with the sedan?</h3>
+					<h3>Why do many images show a car?</h3>
 					<ul>
 						<li>
-							All images were generated with the same seed (42).  For many artists, especially with the 🎨 prompt, that seed produces a car, which is not in the prompt.  Other seeds will cause a different visual element across many artists.
+							It's an artifact of the way SDXL was trained.  It appears consistently, but not always, for any prompt doesn't include a specific subject.  Surprisingly, the car appears for many artists, for many different seeds, and for many different prompts and negative prompts.  For example, I use the non-specific 🎨 prompt, "artwork image".  I picked that intentionally to reveal the subject matter biases SDXL has for each artist.  This artifact of SDXL probably reveals a bias of the model towards generating car images.
 						</li>
 					</ul>
 					<h3>Missing images</h3>
