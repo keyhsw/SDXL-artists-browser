@@ -504,11 +504,11 @@ function updateArtistsCountPerTag(whoCalled) {
 					}
 					checkbox.parentNode.classList.remove('no_matches');
 					checkbox.parentNode.querySelector('input').disabled = false;
-					// editing tags can cause count to be null
+					// count null when tag/checkbox exists, but the artist is hidden
 					if(count) {
 						checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
 					} else {
-						checkbox.parentNode.querySelector('.count').textContent = ' - ' + 'edited';
+						checkbox.parentNode.querySelector('.count').textContent = ' - ' + '0';
 					}
 				}
 			});
