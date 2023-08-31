@@ -15,11 +15,13 @@ var theTime = new Date;
 var startUpTime;
 var tagsConcatenated = new Set();
 var editedArtists = new Set();
+var localStorageAccess = false;
 //
 //
 //
 // functions
 function startUp() {
+	checkLocalStorageAccess();
 	updateTagsConcatenated();
 	updateFooter();
 	loadEditedArtists();
@@ -41,6 +43,36 @@ function startUp() {
 	showHideLowCountTags();
 	makeStyleRuleForDrag();
 	teasePartition();
+	localStorageAccess = false;
+	alertNoLocalStorage(2000);
+}
+
+function checkLocalStorageAccess() {
+	try {
+		localStorage.setItem('testKey', 'testValue');
+		localStorage.removeItem('testKey');
+		localStorageAccess = true;
+	} catch (error) {
+		localStorageAccess = false;
+		alertNoLocalStorage();
+	}
+}
+
+function alertNoLocalStorage(wait) {
+	if(!localStorageAccess) {
+		window.setTimeout(function(){
+			let msg = '';
+			msg += 'My apologies, your browser settings block the ability to save settings and favorites.  If you want those features, you have 3 options:\n';
+			msg += '1.  Use a different browser than Chrome\n'
+			msg += '2.  Change Chrome settings\n';
+			msg += '3.  Download the app to use offline\n\n';
+			msg += 'This app doesn\'t use cookies and instead saves all settings locally so that no data is ever sent to any server.  But when you set to Chrome to block third-party cookies (which you should), it stupidly also blocks local storage.  That\'s because Google wants you to feel pain for blocking their ad-based revenue model.  To change this setting in Chrome (not recommended):\n';
+			msg += '1.  In settings, click "Privacy and security"\n';
+			msg += '2.  Click "Third-party cookies" and set it to "Allow third-party cookies"\n';
+			msg += '3.  Unfortunately, that will allow all 3rd-party cookies on all sites, which is exactly what Google wants.\n';
+			alert(msg);
+		},wait);
+	}
 }
 
 function updateTagsConcatenated() {
@@ -71,35 +103,37 @@ function updateFooter() {
 }
 
 function loadEditedArtists() {
-	const arr = JSON.parse(localStorage.getItem('editedArtists')) || [];
-	editedArtists = new Set(arr);
-	let proto = window.location.protocol;
-	let anyChanges = false;
-	for (let i=0, il=artistsData.length; i<il; i++) {
-		// find match in artistsData if first and last names match
-		let artist = artistsData[i];
-		let artistFound = Array.from(editedArtists).find(editedA => editedA[0] === artist[0] && editedA[1] === artist[1]);
-		if(artistFound) {
-			// check if the edit now matches the original
-			let match = true;
-			for (let j=0, jl=artist.length; j<jl; j++) {
-				if (artist[j] !== artistFound[j]) {
-					match = false;
+	if(localStorageAccess) {
+		const arr = JSON.parse(localStorage.getItem('editedArtists')) || [];
+		editedArtists = new Set(arr);
+		let proto = window.location.protocol;
+		let anyChanges = false;
+		for (let i=0, il=artistsData.length; i<il; i++) {
+			// find match in artistsData if first and last names match
+			let artist = artistsData[i];
+			let artistFound = Array.from(editedArtists).find(editedA => editedA[0] === artist[0] && editedA[1] === artist[1]);
+			if(artistFound) {
+				// check if the edit now matches the original
+				let match = true;
+				for (let j=0, jl=artist.length; j<jl; j++) {
+					if (artist[j] !== artistFound[j]) {
+						match = false;
+					}
 				}
-			}
-			if(match) {
-				anyChanges = true;
-				editedArtists.delete(artistFound);
-			} else {
-				if (!proto.startsWith('http')) {
-					// if this is a local file, then update artistData with the saved edits
-					artistsData[i] = artistFound;
+				if(match) {
+					anyChanges = true;
+					editedArtists.delete(artistFound);
+				} else {
+					if (!proto.startsWith('http')) {
+						// if this is a local file, then update artistData with the saved edits
+						artistsData[i] = artistFound;
+					}
 				}
 			}
 		}
-	}
-	if(anyChanges) {
-		localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
+		if(anyChanges) {
+			localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
+		}
 	}
 }
 
@@ -311,73 +345,81 @@ function insertCheckboxesFromCategories() {
 }
 
 function loadCheckboxesState() {
-	let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
-	let allChecked = true;
-	for (let name in state) {
-		if (document.querySelector('input[name="'+name+'"]')) {
-			document.querySelector('input[name="'+name+'"]').checked = state[name];
-			if(name != 'mode' && name != 'use_categories') {
-				if(!state[name]) {
-					allChecked = false;
+	if(localStorageAccess) {
+		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
+		let allChecked = true;
+		for (let name in state) {
+			if (document.querySelector('input[name="'+name+'"]')) {
+				document.querySelector('input[name="'+name+'"]').checked = state[name];
+				if(name != 'mode' && name != 'use_categories') {
+					if(!state[name]) {
+						allChecked = false;
+					}
 				}
 			}
 		}
-	}
-	if(!allChecked) {
-		document.querySelector('input[name="check-all"]').checked = false;
+		if(!allChecked) {
+			document.querySelector('input[name="check-all"]').checked = false;
+		}
 	}
 }
 
 function storeCheckboxState(checkbox) {
-	let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
-	state[checkbox.name] = checkbox.checked;
-	localStorage.setItem('tagsChecked', JSON.stringify(state));
+	if(localStorageAccess) {
+		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
+		state[checkbox.name] = checkbox.checked;
+		localStorage.setItem('tagsChecked', JSON.stringify(state));
+	}
 }
 
 function storeCheckboxStateAll(isChecked) {
-	let state = {};
-	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-	checkboxes.forEach(function(checkbox) {
-		let isTop = checkbox.parentNode.classList.contains('top_control');
-		if(!isTop || checkbox.name == 'favorite') {
-			// is a tag checkbox, not a setting
-			if(isChecked) {
-				state[checkbox.name] = true;
-			} else {
-				state[checkbox.name]  = false;
+	if(localStorageAccess) {
+		let state = {};
+		var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+		checkboxes.forEach(function(checkbox) {
+			let isTop = checkbox.parentNode.classList.contains('top_control');
+			if(!isTop || checkbox.name == 'favorite') {
+				// is a tag checkbox, not a setting
+				if(isChecked) {
+					state[checkbox.name] = true;
+				} else {
+					state[checkbox.name]  = false;
+				}
 			}
-		}
-	});
-	localStorage.setItem('tagsChecked', JSON.stringify(state));
+		});
+		localStorage.setItem('tagsChecked', JSON.stringify(state));
+	}
 }
 
 function loadOptionsState() {
-	let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
-	if(state['prompt']) {
-		document.getElementById('options_prompts').querySelectorAll('.selected')[0].classList.remove('selected');
-		document.getElementById(state['prompt']).classList.add('selected');
-		if(state['prompt'] == 'promptA') {
+	if(localStorageAccess) {
+		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
+		if(state['prompt']) {
+			document.getElementById('options_prompts').querySelectorAll('.selected')[0].classList.remove('selected');
+			document.getElementById(state['prompt']).classList.add('selected');
+			if(state['prompt'] == 'promptA') {
+				imgTypeShown = 0;
+			} else if(state['prompt'] == 'promptP') {
+				imgTypeShown = 1;
+			} else if(state['prompt'] == 'promptL') {
+				imgTypeShown = 2;
+			}
+		} else {
+			// promptA is already highlighted by HTML
 			imgTypeShown = 0;
-		} else if(state['prompt'] == 'promptP') {
-			imgTypeShown = 1;
-		} else if(state['prompt'] == 'promptL') {
-			imgTypeShown = 2;
 		}
-	} else {
-		// promptA is already highlighted by HTML
-		imgTypeShown = 0;
-	}
-	if(state['artistSort']) {
-		document.getElementById('options_artist_sort').querySelectorAll('.selected')[0].classList.remove('selected');
-		document.getElementById(state['artistSort']).classList.add('selected');
-	} else {
-		// sortAR is already highlighted by HTML
-	}
-	if(state['tagSort']) {
-		document.getElementById('options_tag_sort').querySelectorAll('.selected')[0].classList.remove('selected');
-		document.getElementById(state['tagSort']).classList.add('selected');
-	} else {
-		// sortTC is already highlighted by HTML
+		if(state['artistSort']) {
+			document.getElementById('options_artist_sort').querySelectorAll('.selected')[0].classList.remove('selected');
+			document.getElementById(state['artistSort']).classList.add('selected');
+		} else {
+			// sortAR is already highlighted by HTML
+		}
+		if(state['tagSort']) {
+			document.getElementById('options_tag_sort').querySelectorAll('.selected')[0].classList.remove('selected');
+			document.getElementById(state['tagSort']).classList.add('selected');
+		} else {
+			// sortTC is already highlighted by HTML
+		}
 	}
 }
 
@@ -424,25 +466,27 @@ function highlightSelectedOption(selected) {
 }
 
 function storeOptionsState() {
-	let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
-	if(document.getElementById('promptA').classList.contains('selected')) {
-		state['prompt'] = 'promptA';
-	} else if(document.getElementById('promptP').classList.contains('selected')) {
-		state['prompt'] = 'promptP';
-	} else {
-		state['prompt'] = 'promptL';
+	if(localStorageAccess) {
+		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
+		if(document.getElementById('promptA').classList.contains('selected')) {
+			state['prompt'] = 'promptA';
+		} else if(document.getElementById('promptP').classList.contains('selected')) {
+			state['prompt'] = 'promptP';
+		} else {
+			state['prompt'] = 'promptL';
+		}
+		if(document.getElementById('sortAR').classList.contains('selected')) {
+			state['artistSort'] = 'sortAR';
+		} else {
+			state['artistSort'] = 'sortAA';
+		}
+		if(document.getElementById('sortTC').classList.contains('selected')) {
+			state['tagSort'] = 'sortTC';
+		} else {
+			state['tagSort'] = 'sortTA';
+		}
+		localStorage.setItem('tagsChecked', JSON.stringify(state));
 	}
-	if(document.getElementById('sortAR').classList.contains('selected')) {
-		state['artistSort'] = 'sortAR';
-	} else {
-		state['artistSort'] = 'sortAA';
-	}
-	if(document.getElementById('sortTC').classList.contains('selected')) {
-		state['tagSort'] = 'sortTC';
-	} else {
-		state['tagSort'] = 'sortTA';
-	}
-	localStorage.setItem('tagsChecked', JSON.stringify(state));
 }
 
 function rotatePromptsImages() {
@@ -777,22 +821,26 @@ function showExport() {
 	document.getElementById('export').classList.add('shown');
 	// favorites
 	var textareaF = document.getElementById('export_favorites_list');
-	var favorites = localStorage.getItem('favoritedArtists');
-	var value = '';
-	if(favorites) {
-		value += 'You have favorited these artists:\r\n';
-		for (let key in JSON.parse(favorites)) {
-			if (JSON.parse(favorites)[key] === true) {
-				let names = key.split("|");
-				if(!names[0]) { names[0] = '(no first name)'; }
-				value += '•' + names[0] + ',' + names[1] + '\r\n';
+	var favoritedArtists = false;
+	if(localStorageAccess) {
+		var favorites = localStorage.getItem('favoritedArtists');
+		var value = '';
+		if(favorites) {
+			value += 'You have favorited these artists:\r\n';
+			for (let key in JSON.parse(favorites)) {
+				if (JSON.parse(favorites)[key] === true) {
+					let names = key.split("|");
+					if(!names[0]) { names[0] = '(no first name)'; }
+					value += '•' + names[0] + ',' + names[1] + '\r\n';
+				}
 			}
+			value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).  It must not contain any other more than one set of curly brackets.\r\n\r\n' + favorites;
+			textareaF.value = value;
+		} else {
+			value += 'You haven\'t favorited any artists yet.\r\n\r\n';
+			value += 'To import favorites that you exported earlier, paste the text into this text box, and click "import".';
+			textareaF.value = value;
 		}
-		value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).  It must not contain any other more than one set of curly brackets.\r\n\r\n' + favorites;
-		textareaF.value = value;
-	} else {
-		value += 'You haven\'t favorited any artists yet.\r\n\r\n';
-		value += 'To import favorites that you exported earlier, paste the text into this text box, and click "import".';
 	}
 	// edits
 	var textareaE = document.getElementById('export_edits_list');
@@ -836,42 +884,44 @@ function exportTextarea(type) {
 }
 
 function importFavorites() {
-	let el = document.getElementById('export_favorites_list');
-	let favorites = el.value;
-	let startCount = (favorites.match(/{/g) || []).length;
-	let endCount = (favorites.match(/}/g) || []).length;
-	if (startCount > 1 || endCount > 1) {
-		el.value = 'That text can\'t be imported because it contains multiple curly brackets {}.'
-		return null;
-	}
-	let start = favorites.indexOf('{');
-	let end = favorites.lastIndexOf('}');
-	if (start === -1 || end === -1) {
-		el.value = 'That text can\'t be imported because it contains zero curly brackets {}.'
-		return null;
-	}
-	let jsonString = favorites.substring(start, end + 1);
-	try {
-		let jsonObject = JSON.parse(jsonString);
-	   // Check structure of each key-value pair in jsonObject
-		for (let key in jsonObject) {
-			let value = jsonObject[key];
-			if (!key.includes('|') || typeof value !== 'boolean') {
-				el.value = 'That text can\'t be imported because the JSON string it contains doesn\'t contain a valid list of artists.'
-				return null;
-			}
-		}
-		if(confirm('This will overwrite any saved favorites.  Are you sure?')) {
-			localStorage.setItem('favoritedArtists', jsonString);
-			alert('Favorites were imported!');
-			loadFavoritesState();
-		} else {
-			alert('Okay, you have cancelled the import.');
+	if(localStorageAccess) {
+		let el = document.getElementById('export_favorites_list');
+		let favorites = el.value;
+		let startCount = (favorites.match(/{/g) || []).length;
+		let endCount = (favorites.match(/}/g) || []).length;
+		if (startCount > 1 || endCount > 1) {
+			el.value = 'That text can\'t be imported because it contains multiple curly brackets {}.'
 			return null;
 		}
-	} catch(e) {
-		el.value = 'That text can\'t be imported because it doesn\'t contain a valid JSON sting.'
-		return null;
+		let start = favorites.indexOf('{');
+		let end = favorites.lastIndexOf('}');
+		if (start === -1 || end === -1) {
+			el.value = 'That text can\'t be imported because it contains zero curly brackets {}.'
+			return null;
+		}
+		let jsonString = favorites.substring(start, end + 1);
+		try {
+			let jsonObject = JSON.parse(jsonString);
+		   // Check structure of each key-value pair in jsonObject
+			for (let key in jsonObject) {
+				let value = jsonObject[key];
+				if (!key.includes('|') || typeof value !== 'boolean') {
+					el.value = 'That text can\'t be imported because the JSON string it contains doesn\'t contain a valid list of artists.'
+					return null;
+				}
+			}
+			if(confirm('This will overwrite any saved favorites.  Are you sure?')) {
+				localStorage.setItem('favoritedArtists', jsonString);
+				alert('Favorites were imported!');
+				loadFavoritesState();
+			} else {
+				alert('Okay, you have cancelled the import.');
+				return null;
+			}
+		} catch(e) {
+			el.value = 'That text can\'t be imported because it doesn\'t contain a valid JSON sting.'
+			return null;
+		}
 	}
 }
 
@@ -1048,20 +1098,22 @@ function sortTagsByCount() {
 }
 
 function loadMostUsedTags() {
-	let state = JSON.parse(localStorage.getItem('mustUsedTags')) || {};
-	let mostUsedCategory = document.querySelector('[data-category-name="important"]');
-	for(let tag in state) {
-		if (state[tag]) {
-			let label = document.querySelector('input[name="'+ tag +'"]');
-			if(label) {
-				label = label.parentNode;
-				label.classList.add('is_most_used');
-				label.querySelectorAll('.most_used_indicator')[0].textContent = '-';
-				mostUsedCategory.after(label);
-				updateTagArrayToMatchMostUsed(true,label,tag);
+	if(localStorageAccess) {
+		let state = JSON.parse(localStorage.getItem('mustUsedTags')) || {};
+		let mostUsedCategory = document.querySelector('[data-category-name="important"]');
+		for(let tag in state) {
+			if (state[tag]) {
+				let label = document.querySelector('input[name="'+ tag +'"]');
+				if(label) {
+					label = label.parentNode;
+					label.classList.add('is_most_used');
+					label.querySelectorAll('.most_used_indicator')[0].textContent = '-';
+					mostUsedCategory.after(label);
+					updateTagArrayToMatchMostUsed(true,label,tag);
+				}
 			}
-		}
-	};
+		};
+	}
 }
 
 function updateTagArrayToMatchMostUsed(isAdding,label,tag) {
@@ -1093,42 +1145,48 @@ function updateTagArrayToMatchMostUsed(isAdding,label,tag) {
 }
 
 function storeMostUsedState(label) {
-	var name = label.querySelector('input').name;
-	let state = JSON.parse(localStorage.getItem('mustUsedTags')) || {};
-	state[name] = label.classList.contains('is_most_used');
-	localStorage.setItem('mustUsedTags', JSON.stringify(state));
+	if(localStorageAccess) {
+		var name = label.querySelector('input').name;
+		let state = JSON.parse(localStorage.getItem('mustUsedTags')) || {};
+		state[name] = label.classList.contains('is_most_used');
+		localStorage.setItem('mustUsedTags', JSON.stringify(state));
+	}
 }
 
 function enterExitEditMostUsedMode(doExit) {
-	let inputs = Array.from(document.querySelectorAll('input'));
-	if(editMostUsedMode || doExit) {
-		// exit edit mode
-		editMostUsedMode = false;
-		document.getElementById('edit_most_used').textContent = 'edit';
-		document.getElementById('layout').classList.remove('edit_mode');
-		inputs.forEach(function(input) {
-			input.disabled = false;
-		});
-		let labels = Array.from(document.querySelectorAll('.was_moved'));
-		labels.forEach(function(label) {
-			// clean up classes added to track moved tags during edit mode
-			label.classList.remove('was_moved');
-		})
-		document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
-		document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
-		document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
-		updateArtistsCountPerCategory();
+	if(localStorageAccess) {
+		let inputs = Array.from(document.querySelectorAll('input'));
+		if(editMostUsedMode || doExit) {
+			// exit edit mode
+			editMostUsedMode = false;
+			document.getElementById('edit_most_used').textContent = 'edit';
+			document.getElementById('layout').classList.remove('edit_mode');
+			inputs.forEach(function(input) {
+				input.disabled = false;
+			});
+			let labels = Array.from(document.querySelectorAll('.was_moved'));
+			labels.forEach(function(label) {
+				// clean up classes added to track moved tags during edit mode
+				label.classList.remove('was_moved');
+			})
+			document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
+			document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
+			document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
+			updateArtistsCountPerCategory();
+		} else {
+			// enter edit mode
+			editMostUsedMode = true;
+			document.getElementById('edit_most_used').textContent = 'exit editing';
+			document.getElementById('layout').classList.add('edit_mode');
+			inputs.forEach(function(input) {
+				input.disabled = true;
+			});
+			document.getElementById('toggles').style.width = '';
+			document.getElementById('gutter').style.left =  '';
+			document.getElementById('image-container').style.marginLeft = '';
+		}
 	} else {
-		// enter edit mode
-		editMostUsedMode = true;
-		document.getElementById('edit_most_used').textContent = 'exit editing';
-		document.getElementById('layout').classList.add('edit_mode');
-		inputs.forEach(function(input) {
-			input.disabled = true;
-		});
-		document.getElementById('toggles').style.width = '';
-		document.getElementById('gutter').style.left =  '';
-		document.getElementById('image-container').style.marginLeft = '';
+		alertNoLocalStorage(0);
 	}
 }
 
@@ -1205,25 +1263,31 @@ function addOrRemoveFavorite(artist) {
 }
 
 function loadFavoritesState() {
-	let state = JSON.parse(localStorage.getItem('favoritedArtists')) || {};
-	let artists = document.getElementsByClassName('image-item');
-	for(let artist of artists) {
-		let artistName = artist.getElementsByClassName('firstN')[0].textContent + '|' + artist.getElementsByClassName('lastN')[0].textContent;
-		if(state[artistName]) {
-			artist.classList.add('favorite');
-		} else {
-			artist.classList.remove('favorite');
+		if(localStorageAccess) {
+		let state = JSON.parse(localStorage.getItem('favoritedArtists')) || {};
+		let artists = document.getElementsByClassName('image-item');
+		for(let artist of artists) {
+			let artistName = artist.getElementsByClassName('firstN')[0].textContent + '|' + artist.getElementsByClassName('lastN')[0].textContent;
+			if(state[artistName]) {
+				artist.classList.add('favorite');
+			} else {
+				artist.classList.remove('favorite');
+			}
 		}
+		updateFavoritesCount();
 	}
-	updateFavoritesCount();
 }
 
 function storeFavoriteState(artist) {
-	var artistName = artist.getElementsByClassName('firstN')[0].textContent + '|' + artist.getElementsByClassName('lastN')[0].textContent;
-	var isFavorited = artist.classList.contains('favorite');
-	let state = JSON.parse(localStorage.getItem('favoritedArtists')) || {};
-	state[artistName] = isFavorited;
-	localStorage.setItem('favoritedArtists', JSON.stringify(state));
+	if(localStorageAccess) {
+		var artistName = artist.getElementsByClassName('firstN')[0].textContent + '|' + artist.getElementsByClassName('lastN')[0].textContent;
+		var isFavorited = artist.classList.contains('favorite');
+		let state = JSON.parse(localStorage.getItem('favoritedArtists')) || {};
+		state[artistName] = isFavorited;
+		localStorage.setItem('favoritedArtists', JSON.stringify(state));
+	} else {
+		alertNoLocalStorage(0);
+	}
 }
 
 function updateFavoritesCount() {
@@ -1482,15 +1546,19 @@ function teasePartition() {
 }
 
 function editTagsClicked(clickedImageItem) {
-	let indicatorEl = clickedImageItem.querySelector('.art_edit span');
-	if(indicatorEl.textContent == '✍️') {
-		let artistWasInEditMode = editTagsFindArtistInEditMode(clickedImageItem);
-		if(!artistWasInEditMode) {
-			doAlert('Read help ⁉️ first',1);
+	if(localStorageAccess) {
+		let indicatorEl = clickedImageItem.querySelector('.art_edit span');
+		if(indicatorEl.textContent == '✍️') {
+			let artistWasInEditMode = editTagsFindArtistInEditMode(clickedImageItem);
+			if(!artistWasInEditMode) {
+				doAlert('Read help ⁉️ first',1);
+			}
+			editTagsEnterEditMode(clickedImageItem);
+		} else {
+			editTagsFindArtistInEditMode();
 		}
-		editTagsEnterEditMode(clickedImageItem);
 	} else {
-		editTagsFindArtistInEditMode();
+		alertNoLocalStorage(0);
 	}
 }
 
@@ -1679,67 +1747,71 @@ function focusInput(input) {
 }
 
 function saveTagsForArtist(tagArea) {
-	// get new tags
-	let tagLabels = tagArea.querySelectorAll('label');
-	let newTagsArr = [];
-	let artistKnown = true;
-	tagLabels.forEach(function(label) {
-		let input = label.querySelector('input');
-		if(input.value == 'known') {
-			artistKnown = input.checked;
-		} else {
-			if(input.checked) {
-				newTagsArr.push(input.value);
-			}
-		}
-	});
-	// find match in artistsData
-	let firstN = tagArea.closest('.image-item').querySelector('.firstN').textContent;
-	let lastN = tagArea.closest('.image-item').querySelector('.lastN').textContent;
-	let edit = [];
-	for (let i=0, il=artistsData.length; i<il; i++) {
-		let artist = artistsData[i];
-		if(artist[0] == lastN && artist[1] == firstN) {
-			// artists can have a tag in the format of "added-YYYY-MM-DD"
-			// this was stripped earlier, so we need to add it back in
-			let oldTagsArr = artist[2].split('|');
-			for (let j=oldTagsArr.length-1; j>=0; j--) {
-				// loop backwards because it should be at the end
-				if(oldTagsArr[j].match(/added-(\d|-)*/)) {
-					newTagsArr.push(oldTagsArr[j]);
+	if(localStorageAccess) {
+		// get new tags
+		let tagLabels = tagArea.querySelectorAll('label');
+		let newTagsArr = [];
+		let artistKnown = true;
+		tagLabels.forEach(function(label) {
+			let input = label.querySelector('input');
+			if(input.value == 'known') {
+				artistKnown = input.checked;
+			} else {
+				if(input.checked) {
+					newTagsArr.push(input.value);
 				}
 			}
-			let newTagsStr = newTagsArr.join('|');
-			artist[2] = newTagsStr;
-			// in db, true = hide unknown, but here true = known
-			if(artistKnown) {
-				artist[3] = false;
-			} else {
-				artist[3] = true;
+		});
+		// find match in artistsData
+		let firstN = tagArea.closest('.image-item').querySelector('.firstN').textContent;
+		let lastN = tagArea.closest('.image-item').querySelector('.lastN').textContent;
+		let edit = [];
+		for (let i=0, il=artistsData.length; i<il; i++) {
+			let artist = artistsData[i];
+			if(artist[0] == lastN && artist[1] == firstN) {
+				// artists can have a tag in the format of "added-YYYY-MM-DD"
+				// this was stripped earlier, so we need to add it back in
+				let oldTagsArr = artist[2].split('|');
+				for (let j=oldTagsArr.length-1; j>=0; j--) {
+					// loop backwards because it should be at the end
+					if(oldTagsArr[j].match(/added-(\d|-)*/)) {
+						newTagsArr.push(oldTagsArr[j]);
+					}
+				}
+				let newTagsStr = newTagsArr.join('|');
+				artist[2] = newTagsStr;
+				// in db, true = hide unknown, but here true = known
+				if(artistKnown) {
+					artist[3] = false;
+				} else {
+					artist[3] = true;
+				}
+				edit = artist;
+				break;
 			}
-			edit = artist;
-			break;
 		}
-	}
-	// replace old edits with new edits
-	for (let i=0, il=editedArtists.length; i<il; i++) {
-		let oldEdit = editedArtists[i];
-		if(edit[0] == oldEdit[0] && edit[1] == oldEdit[1]) {
-			editedArtists.delete(oldEdit);
+		// replace old edits with new edits
+		for (let i=0, il=editedArtists.length; i<il; i++) {
+			let oldEdit = editedArtists[i];
+			if(edit[0] == oldEdit[0] && edit[1] == oldEdit[1]) {
+				editedArtists.delete(oldEdit);
+			}
 		}
+		editedArtists.add(edit)
+		// save edited artists locally
+		localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
 	}
-	editedArtists.add(edit)
-	// save edited artists locally
-	localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
 }
 
 function deleteAllEdits() {
-	if(confirm('This will delete all of your edits.  Are you sure?')) {
-		localStorage.removeItem('editedArtists');
-		alert('official database restored!  this page will reload...');
-		location.reload();
-	} else {
-		alert('restore was cancelled!');
+	if(localStorageAccess) {
+		if(confirm('This will delete all of your edits.  Are you sure?')) {
+			localStorage.removeItem('editedArtists');
+			alert('official database restored!  this page will reload...');
+			location.reload();
+		} else {
+			alert('restore was cancelled!');
+		}
 	}
 }
 //
