@@ -43,7 +43,6 @@ function startUp() {
 	showHideLowCountTags();
 	makeStyleRuleForDrag();
 	teasePartition();
-	localStorageAccess = false;
 	alertNoLocalStorage(2000);
 }
 
