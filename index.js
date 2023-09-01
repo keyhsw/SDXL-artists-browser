@@ -16,12 +16,16 @@ var startUpTime;
 var tagsConcatenated = new Set();
 var editedArtists = new Set();
 var localStorageAccess = false;
+var cacheAccess = false;
+
 //
 //
 //
 // functions
 function startUp() {
 	checkLocalStorageAccess();
+	alertNoLocalStorage(2000);
+	checkCacheAccess();
 	updateTagsConcatenated();
 	updateFooter();
 	loadEditedArtists();
@@ -43,7 +47,6 @@ function startUp() {
 	showHideLowCountTags();
 	makeStyleRuleForDrag();
 	teasePartition();
-	alertNoLocalStorage(2000);
 }
 
 function checkLocalStorageAccess() {
@@ -54,6 +57,19 @@ function checkLocalStorageAccess() {
 	} catch (error) {
 		localStorageAccess = false;
 		alertNoLocalStorage();
+	}
+}
+
+async function checkCacheAccess() {
+	try {
+		// open or create test cache
+		const cache = await caches.open('testCache');
+		cacheAccess = true;
+		await caches.delete('testCache');
+		console.log("Cache API Access:", cacheAccess);
+	} catch (error) {
+		console.error('Cache API Access Error: ', error);
+		cacheAccess = false;
 	}
 }
 
@@ -1701,8 +1717,11 @@ function searchForTags(input, event, tagList) {
 	let range = 'start'
 	tagsConcatenated.forEach(function(tag) {
 		for (var i=0, il=tagList.length; i<il; i++) {
-			if(tag.toLowerCase() == tagList[i].toLowerCase()) {
-				return;
+			if(typeof tagList[i] == 'string') {
+				// first tagList item is boolean
+				if(tag.toLowerCase() == tagList[i].toLowerCase()) {
+					return;
+				}
 			}
 		}
 		if(tag.toLowerCase().indexOf(input.value.toLowerCase()) == 0) {
