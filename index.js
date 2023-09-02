@@ -181,11 +181,11 @@ async function deleteItemBasedOnAccessType(item) {
 function alertNoStoringAccess(wait) {
 	window.setTimeout(function(){
 		let msg = '';
-		msg += 'My apologies, your browser settings block the ability to save settings and favorites.  This was working on Firefox, Safari, and Chrome as of Sep. 2023.  Suggestions:\n';
-		msg += '1.  Try a different browser\n'
-		msg += '2.  Check browser privacy settings\n';
-		msg += '3.  Download the app to use offline\n\n';
-		msg += 'This app doesn\'t use cookies, saves all settings locally, and never sends data to any server.  However, some privacy settings may block all data storage.'
+		msg += 'My apologies, your browser settings block the ability to save settings and favorites.  Suggestions:\n';
+		msg += '1.  Try Firefox, Safari, or Edge\n'
+		msg += '2.  Download the app to use offline\n';
+		msg += '3.  On Chrome, enable 3rd-party cookies (not recommended)\n\n';
+		msg += 'This app doesn\'t use cookies, never sends data to any server, and saves all data locally.  However, when you block 3rd-party cookies in Chrome, it also blocks local data storage.  Chrome wants you to have a painful experience if you turn off 3rd-party cookies.';
 		alert(msg);
 	},wait);
 }
