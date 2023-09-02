@@ -15,79 +15,179 @@ var theTime = new Date;
 var startUpTime;
 var tagsConcatenated = new Set();
 var editedArtists = new Set();
-var localStorageAccess = false;
-var cacheAccess = false;
+var storingAccessType = 'none';
+const lowCountThreshold = 3;
+//
+//
+//
+// wait for DOM
+document.addEventListener("DOMContentLoaded", function() {
+	checkStoringAccessType().then(state => {
+		startUp();
+	});
+	startUpTime = theTime.getTime();
+});
 
-//
-//
-//
 // functions
-function startUp() {
-	checkLocalStorageAccess();
-	alertNoLocalStorage(2000);
-	checkCacheAccess();
+async function startUp() {
 	updateTagsConcatenated();
 	updateFooter();
-	loadEditedArtists();
+	await loadEditedArtists();
 	insertArtists();
 	insertCheckboxesFromArtistsData();
 	insertCheckboxesFromCategories();
-	loadCheckboxesState();
+	await loadCheckboxesState();
 	showHideCategories();
-	loadOptionsState();
-	loadFavoritesState();
+	await loadOptionsState();
+	await loadFavoritesState();
 	hideAllArtists();
 	unhideBasedOnPermissiveSetting();
 	updateArtistsCountPerTag('start');
 	rotatePromptsImages();
 	sortArtists();
 	sortTags();
-	loadMostUsedTags();
+	await loadMostUsedTags();
 	updateArtistsCountPerCategory();
 	showHideLowCountTags();
 	makeStyleRuleForDrag();
 	teasePartition();
+	addAllListeners();
 }
 
-function checkLocalStorageAccess() {
-	try {
-		localStorage.setItem('testKey', 'testValue');
-		localStorage.removeItem('testKey');
-		localStorageAccess = true;
-	} catch (error) {
-		localStorageAccess = false;
-		alertNoLocalStorage();
+function checkStoringAccessType() {
+	return new Promise((resolve, reject) => {
+		try {
+			localStorage.setItem('testKey', 'testValue');
+			localStorage.removeItem('testKey');
+			storingAccessType = 'localStorage';
+			console.log('all settings saved using localStorage');
+			resolve();
+		} catch (error) {
+			return caches.open('testCache')
+				.then(cache => {
+					const blob = new Blob([JSON.stringify('test')], { type: 'application/json' });
+					const responseToCache = new Response(blob);
+					cache.put('testCache', responseToCache).then(response => {
+						storingAccessType = 'dataCache';
+						console.log('all settings saved using dataCache');
+						return;
+					})
+					.catch(error => {
+						console.warn('no settings can be saved; we only have read access to cache: ' + error);
+						alertNoStoringAccess(2000);
+						resolve();
+					});
+				})
+				.catch(error => {
+					console.warn('no settings can be saved; no access to any storage method: ' + error);
+					alertNoStoringAccess(2000);
+					resolve();
+				});
+		}
+	}).catch(error => {
+		console.warn('had error writing to localStorage: ', error);
+	});
+}
+
+function loadItemBasedOnAccessType(item) {
+	if(storingAccessType == 'localStorage') {
+		return new Promise((resolve, reject) => {
+			try {
+				const state = JSON.parse(localStorage.getItem(item));
+				resolve(state || {});
+			} catch (error) {
+				reject(error);
+			}
+		}).catch(error => {
+			console.warn(item + ' had error loading from localStorage: ', error);
+			return {};
+		});
+	} else if(storingAccessType == 'dataCache') {
+		return caches.open('dataCache')
+			.then(cache => {
+				return cache.match(item);
+			})
+			.then(response => {
+				if(response) {
+					return response.json();
+				}
+				return {};
+			})
+			.catch(error => {
+				console.warn(item + ' had error loading from cache: ', error);
+			});
+	} else if(storingAccessType == 'none') {
+		return Promise.resolve({});
 	}
 }
 
-async function checkCacheAccess() {
-	try {
-		// open or create test cache
-		const cache = await caches.open('testCache');
-		cacheAccess = true;
-		await caches.delete('testCache');
-		console.log("Cache API Access:", cacheAccess);
-	} catch (error) {
-		console.error('Cache API Access Error: ', error);
-		cacheAccess = false;
+function storeItemBasedOnAccessType(item, stateArray, key, value) {
+	if(storingAccessType == 'localStorage') {
+		try {
+			if(stateArray) {
+				localStorage.setItem(item, JSON.stringify(stateArray));
+			} else {
+				let state = JSON.parse(localStorage.getItem(item)) || {};
+				state[key] = value;
+				localStorage.setItem(item, JSON.stringify(state));
+			}
+		} catch (error) {
+			console.warn(item + ' had error saving localStorage: ', error);
+		}
+	} else if(storingAccessType = 'dataCache') {
+		caches.open('dataCache').then(cache => {
+			if(stateArray) {
+				const blob = new Blob([JSON.stringify(stateArray)], { type: 'application/json' });
+				const responseToCache = new Response(blob);
+				return cache.put(item, responseToCache);
+			} else {
+				// try to get the item state from the cache
+				cache.match(item).then(response => {
+					let state = {};
+					if(response) {
+						return response.json().then(cachedData => {
+							state = cachedData || {};
+							return state;
+						});
+					} else {
+						return state;
+					}
+				}).then(state => {
+					state[key] = value;
+					// store the updated state back to the cache
+					const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+					const responseToCache = new Response(blob);
+					return cache.put(item, responseToCache);
+				});
+			}
+		}).catch(error => {
+			console.warn(item + ' had error saving to cache: ', error);
+		});
+	} else if(storingAccessType == 'none') {
+		alertNoStoringAccess(0);
 	}
 }
 
-function alertNoLocalStorage(wait) {
-	if(!localStorageAccess) {
-		window.setTimeout(function(){
-			let msg = '';
-			msg += 'My apologies, your browser settings block the ability to save settings and favorites.  If you want those features, you have 3 options:\n';
-			msg += '1.  Use a different browser than Chrome\n'
-			msg += '2.  Change Chrome settings\n';
-			msg += '3.  Download the app to use offline\n\n';
-			msg += 'This app doesn\'t use cookies and instead saves all settings locally so that no data is ever sent to any server.  But when you set to Chrome to block third-party cookies (which you should), it stupidly also blocks local storage.  That\'s because Google wants you to feel pain for blocking their ad-based revenue model.  To change this setting in Chrome (not recommended):\n';
-			msg += '1.  In settings, click "Privacy and security"\n';
-			msg += '2.  Click "Third-party cookies" and set it to "Allow third-party cookies"\n';
-			msg += '3.  Unfortunately, that will allow all 3rd-party cookies on all sites, which is exactly what Google wants.\n';
-			alert(msg);
-		},wait);
+async function deleteItemBasedOnAccessType(item) {
+	if(storingAccessType == 'localStorage') {
+		localStorage.removeItem(item);
+	} else if(storingAccessType = 'dataCache') {
+		await caches.delete(item);
+	} else if(storingAccessType == 'none') {
+		// nothing to do
 	}
+}
+
+function alertNoStoringAccess(wait) {
+	window.setTimeout(function(){
+		let msg = '';
+		msg += 'My apologies, your browser settings block the ability to save settings and favorites.  This was working on Firefox, Safari, and Chrome as of Sep. 2023.  Suggestions:\n';
+		msg += '1.  Try a different browser\n'
+		msg += '2.  Check browser privacy settings\n';
+		msg += '3.  Download the app to use offline\n\n';
+		msg += 'This app doesn\'t use cookies, saves all settings locally, and never sends data to any server.  However, some privacy settings may block all data storage.'
+		alert(msg);
+	},wait);
 }
 
 function updateTagsConcatenated() {
@@ -117,10 +217,9 @@ function updateFooter() {
 	}
 }
 
-function loadEditedArtists() {
-	if(localStorageAccess) {
-		const arr = JSON.parse(localStorage.getItem('editedArtists')) || [];
-		editedArtists = new Set(arr);
+async function loadEditedArtists() {
+	await loadItemBasedOnAccessType('editedArtists').then(state => {
+		editedArtists = new Set(Array.from(state));
 		let proto = window.location.protocol;
 		let anyChanges = false;
 		for (let i=0, il=artistsData.length; i<il; i++) {
@@ -147,9 +246,9 @@ function loadEditedArtists() {
 			}
 		}
 		if(anyChanges) {
-			localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
+			storeItemBasedOnAccessType('editedArtists',editedArtists,false,false);
 		}
-	}
+	});
 }
 
 function insertArtists() {
@@ -159,16 +258,13 @@ function insertArtists() {
 	let imagePromises = artistsData.map((artist) => {
 		var last = artist[0];
 		var first = artist[1];
-		var tags1 = artist[2].replaceAll('|', ' ').toLowerCase(); // for classes
 		var tags2 = artist[2].replaceAll('|', ', '); // for display
-		// class names can't start with a number, but some tags do
-		// in these cases we prepend the class with 'qqqq-'
-		tags1 = tags1.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
 		// artists can have a tag in the format of "added-YYYY-MM"
 		// we want that to show up as a filter, but not on the artist card
 		tags2 = tags2.replace(/, added-(\d|-)*/g,'');
 		var itemDiv = document.createElement('div');
-		itemDiv.className = 'image-item ' + tags1;
+		itemDiv.className = 'image-item';
+		itemDiv.dataset.tagList = artist[2].toLowerCase();
 		if(artist[3]) {
 			itemDiv.dataset.deprecated = true;
 		}
@@ -359,9 +455,8 @@ function insertCheckboxesFromCategories() {
 	}
 }
 
-function loadCheckboxesState() {
-	if(localStorageAccess) {
-		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
+async function loadCheckboxesState() {
+	await loadItemBasedOnAccessType('tagsChecked').then(state => {
 		let allChecked = true;
 		for (let name in state) {
 			if (document.querySelector('input[name="'+name+'"]')) {
@@ -376,39 +471,32 @@ function loadCheckboxesState() {
 		if(!allChecked) {
 			document.querySelector('input[name="check-all"]').checked = false;
 		}
-	}
+	});
 }
 
 function storeCheckboxState(checkbox) {
-	if(localStorageAccess) {
-		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
-		state[checkbox.name] = checkbox.checked;
-		localStorage.setItem('tagsChecked', JSON.stringify(state));
-	}
+	storeItemBasedOnAccessType('tagsChecked',false,checkbox.name,checkbox.checked);
 }
 
 function storeCheckboxStateAll(isChecked) {
-	if(localStorageAccess) {
-		let state = {};
-		var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-		checkboxes.forEach(function(checkbox) {
-			let isTop = checkbox.parentNode.classList.contains('top_control');
-			if(!isTop || checkbox.name == 'favorite') {
-				// is a tag checkbox, not a setting
-				if(isChecked) {
-					state[checkbox.name] = true;
-				} else {
-					state[checkbox.name]  = false;
-				}
+	let checkboxes = document.querySelectorAll('input[type="checkbox"]');
+	let state = {};
+	checkboxes.forEach(function(checkbox) {
+		let isTop = checkbox.parentNode.classList.contains('top_control');
+		if(!isTop || checkbox.name == 'favorite') {
+			// is a tag checkbox, not a setting
+			if(isChecked) {
+				state[checkbox.name] = true;
+			} else {
+				state[checkbox.name]  = false;
 			}
-		});
-		localStorage.setItem('tagsChecked', JSON.stringify(state));
-	}
+		}
+	});
+	storeItemBasedOnAccessType('tagsChecked',state,false,false);
 }
 
-function loadOptionsState() {
-	if(localStorageAccess) {
-		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
+async function loadOptionsState() {
+	await loadItemBasedOnAccessType('optionsChecked').then(state => {
 		if(state['prompt']) {
 			document.getElementById('options_prompts').querySelectorAll('.selected')[0].classList.remove('selected');
 			document.getElementById(state['prompt']).classList.add('selected');
@@ -435,7 +523,7 @@ function loadOptionsState() {
 		} else {
 			// sortTC is already highlighted by HTML
 		}
-	}
+	});
 }
 
 function highlightSelectedOption(selected) {
@@ -481,27 +569,25 @@ function highlightSelectedOption(selected) {
 }
 
 function storeOptionsState() {
-	if(localStorageAccess) {
-		let state = JSON.parse(localStorage.getItem('tagsChecked')) || {};
-		if(document.getElementById('promptA').classList.contains('selected')) {
-			state['prompt'] = 'promptA';
-		} else if(document.getElementById('promptP').classList.contains('selected')) {
-			state['prompt'] = 'promptP';
-		} else {
-			state['prompt'] = 'promptL';
-		}
-		if(document.getElementById('sortAR').classList.contains('selected')) {
-			state['artistSort'] = 'sortAR';
-		} else {
-			state['artistSort'] = 'sortAA';
-		}
-		if(document.getElementById('sortTC').classList.contains('selected')) {
-			state['tagSort'] = 'sortTC';
-		} else {
-			state['tagSort'] = 'sortTA';
-		}
-		localStorage.setItem('tagsChecked', JSON.stringify(state));
+	let state = {};
+	if(document.getElementById('promptA').classList.contains('selected')) {
+		state['prompt'] = 'promptA';
+	} else if(document.getElementById('promptP').classList.contains('selected')) {
+		state['prompt'] = 'promptP';
+	} else {
+		state['prompt'] = 'promptL';
 	}
+	if(document.getElementById('sortAR').classList.contains('selected')) {
+		state['artistSort'] = 'sortAR';
+	} else {
+		state['artistSort'] = 'sortAA';
+	}
+	if(document.getElementById('sortTC').classList.contains('selected')) {
+		state['tagSort'] = 'sortTC';
+	} else {
+		state['tagSort'] = 'sortTA';
+	}
+	storeItemBasedOnAccessType('optionsChecked',state,false,false);
 }
 
 function rotatePromptsImages() {
@@ -538,72 +624,60 @@ function rotatePromptsImages() {
 }
 
 function updateArtistsCountPerTag(whoCalled) {
-	window.setTimeout(function() {
-		var permissiveCheckbox = document.querySelector('input[name="mode"]');
-		var deprecatedCheckbox = document.querySelector('input[name="deprecated"]');
-		var checkboxes = document.querySelectorAll('input[type="checkbox"]');
-		var divs = document.querySelectorAll('.image-item');
-		var hiddenDivs = document.querySelectorAll('.image-item.hidden');
-		var deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
-		var count = 0;
-		if(permissiveCheckbox.checked || whoCalled == 'start') {
-			// on page load, we need to add all the counts first
-			checkboxes.forEach(function(checkbox) {
-				let isTop = checkbox.parentNode.classList.contains('top_control');
-				if(!isTop) {
-					var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
-					var matchingDivs = document.querySelectorAll('.image-item.' + theClass);
-					let filteredDivs = Array.from(matchingDivs).filter(mat => {
-						return !Array.from(deprecatedDivs).some(dep => dep === mat);
-					});
-					if(deprecatedCheckbox.checked) {
-						count = filteredDivs.length;
-					} else {
-						count = matchingDivs.length;
-					}
-					checkbox.parentNode.classList.remove('no_matches');
-					checkbox.parentNode.querySelector('input').disabled = false;
-					// count null when tag/checkbox exists, but the artist is hidden
-					if(count) {
-						checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
-					} else {
-						checkbox.parentNode.querySelector('.count').textContent = ' - ' + '0';
-					}
-				}
-			});
-			updateArtistsCountPerCategory();
-		}
-		if(!permissiveCheckbox.checked) {
-			checkboxes.forEach(function(checkbox) {
-				let isTop = checkbox.parentNode.classList.contains('top_control');
-				if(!isTop) {
-					count = 0;
-					// class names can't start with a number, but some tags do
-					// in these cases prepending with 'qqqq-'
-					var theClass = checkbox.name.replace(/(^|\s)(\d)/g, '$1qqqq-$2');
-					// for strict mode, for each checkbox, only count artists with a classes matching all checked checkboxes
-					var matchingDivs = document.querySelectorAll('.image-item.' + theClass + ':not(.hidden)');
-					let filteredDivs = Array.from(matchingDivs).filter(mat => {
-						return !Array.from(deprecatedDivs).some(dep => dep === mat);
-					});
-					if(deprecatedCheckbox.checked) {
-						count = filteredDivs.length;
-					} else {
-						count = matchingDivs.length;
-					}
-					if(count == 0) {
-						checkbox.parentNode.classList.add('no_matches');
-						checkbox.parentNode.querySelector('input').disabled = true;
-					} else {
-						checkbox.parentNode.classList.remove('no_matches');
-						checkbox.parentNode.querySelector('input').disabled = false;
-					}
-					checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
-				}
-			});
-		}
-		updateCountOfAllArtistsShown(divs, hiddenDivs);
+	if(whoCalled == 'start') {
+		// on page load, we need to add all the counts first
+		updateArtistsCountPerTagSlow();
+	}
+	timer = setTimeout(function() {
+		// for checkbox, we defer counts because it's slow
+		updateArtistsCountPerTagSlow();
 	},0);
+}
+
+function updateArtistsCountPerTagSlow() {
+	let permissiveCheckbox = document.querySelector('input[name="mode"]');
+	let isPermissive = permissiveCheckbox.checked;
+	let deprecatedCheckbox = document.querySelector('input[name="deprecated"]');
+	let checkboxes = document.querySelectorAll('input[type="checkbox"]');
+	let divs = document.querySelectorAll('.image-item');
+	let hiddenDivs = document.querySelectorAll('.image-item.hidden');
+	let deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
+	checkboxes.forEach(function(checkbox) {
+		let isTop = checkbox.parentNode.classList.contains('top_control');
+		if(!isTop) {
+			let matchingDivs;
+			if(isPermissive) {
+				matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]');
+			} else {
+				// for strict mode, for each checkbox, only count artists with a tags matching all checked checkboxes
+				matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]:not(.hidden)');
+			}
+			let filteredDivs = Array.from(matchingDivs).filter(mat => {
+				// only includes the artists known to SD
+				return !Array.from(deprecatedDivs).some(dep => dep === mat);
+			});
+			let count = 0;
+			if(deprecatedCheckbox.checked) {
+				count = filteredDivs.length;
+			} else {
+				count = matchingDivs.length;
+			}
+			if(!count) { count = 0; }
+			checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
+			checkbox.parentNode.classList.remove('no_matches');
+			checkbox.parentNode.querySelector('input').disabled = false;
+			if(!isPermissive) {
+				if(count == 0) {
+					checkbox.parentNode.classList.add('no_matches');
+					checkbox.parentNode.querySelector('input').disabled = true;
+				}
+			}
+		}
+	});
+	updateCountOfAllArtistsShown(divs, hiddenDivs);
+	if(isPermissive) {
+		updateArtistsCountPerCategory();
+	}
 }
 
 function updateArtistsCountPerCategory() {
@@ -613,14 +687,9 @@ function updateArtistsCountPerCategory() {
 		counts[i] = 0;
 	}
 	imageItems.forEach(function(imageItem) {
-		var classes = Array.from(imageItem.classList).map(className => {
-			// class names can't start with a number,
-			// so some classes were prepending with 'qqqq-'
-			// which must be ignored
-			return className.replace(/^qqqq-/, '');
-		});
+		let tagList = imageItem.dataset.tagList.split('|');
 		for(i=0,il=tagCategories.length; i<il; i++) {
-			if(tagCategories[i].map(c => c.toLowerCase()).some(c => classes.includes(c))) {
+			if(tagCategories[i].map(tag => tag.toLowerCase()).some(tag => tagList.includes(tag))) {
 				counts[i]++;
 			}
 		}
@@ -713,20 +782,18 @@ function unhideBasedOnPermissiveSetting() {
 
 function unhideArtistsPermissive() {
 	// permissive mode unhides images that match ANY checked tag
-	// the set of checkboxes is derived from the unique tags within the imageItem (Artists) classes
+	// the set of checkboxes is derived from the unique tags within the imageItem (Artists) tagList dataSet
 	var imageItems = document.querySelectorAll('.image-item');
 	var checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'))
 		.filter(cb => !cb.parentNode.classList.contains("top_control"));
 	checkboxes.push(document.querySelector('input[name="favorite"]'));
 	var checked = checkboxes.filter(cb => cb.checked).map(cb => cb.name);
 	imageItems.forEach(function(imageItem) {
-		var classes = Array.from(imageItem.classList).map(className => {
-			// class names can't start with a number,
-			// so some classes were prepending with 'qqqq-'
-			// which must be ignored
-			return className.replace(/^qqqq-/, '');
-		});
-		if(checked.some(c => classes.includes(c))) {
+		let tagList = imageItem.dataset.tagList.split('|');
+		if(imageItem.classList.contains('favorite')) {
+			tagList.push('favorite');
+		}
+		if(checked.some(tag => tagList.includes(tag))) {
 			imageItem.classList.remove('hidden');
 		}
 	});
@@ -735,7 +802,7 @@ function unhideArtistsPermissive() {
 
 function unhideArtistsStrict() {
 	// strict mode unhides images that match ALL checked tags
-	// the set of checkboxes is derived from the unique tags within the imageItem (Artists) classes
+	// the set of checkboxes is derived from the unique tags within the imageItem (Artists) tagList dataSet
 	var imageItems = document.querySelectorAll('.image-item');
 	var checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'))
 		.filter(cb => !cb.parentNode.classList.contains("top_control"));
@@ -743,13 +810,11 @@ function unhideArtistsStrict() {
 	var checked = checkboxes.filter(cb => cb.checked).map(cb => cb.name);
 	if(checked.length > 0) {
 		imageItems.forEach(function(imageItem, index) {
-			var classes = Array.from(imageItem.classList).map(className => {
-				// class names can't start with a number,
-				// so some classes were prepending with 'qqqq-'
-				// which must be ignored
-				return className.replace(/^qqqq-/, '');
-			});
-			if(checked.every(c => classes.includes(c))) {
+			let tagList = imageItem.dataset.tagList.split('|');
+			if(imageItem.classList.contains('favorite')) {
+				tagList.push('favorite');
+			}
+			if(checked.every(tag => tagList.includes(tag))) {
 				imageItem.classList.remove('hidden');
 			}
 		});
@@ -766,7 +831,7 @@ function unhideArtistsStrict() {
 function unhideAristsExact() {
 	// exact mode isn't currently used because almost no two artists have the same set of tags
 	// exact mode unhides images that match ALL checked tags and NO unchecked tags
-	// the set of checkboxes is derived from the unique tags within the imageItem (Artists) classes
+	// the set of checkboxes is derived from the unique tags within the imageItem (Artists) tagList dataSet
 	var imageItems = document.querySelectorAll('.image-item');
 	var checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'))
 		.filter(cb => !cb.parentNode.classList.contains("top_control"));
@@ -775,9 +840,12 @@ function unhideAristsExact() {
 	var unchecked = checkboxes.filter(cb => !cb.checked).map(cb => cb.name);
 	if(checked.length > 0) {
 		imageItems.forEach(function(imageItem, index) {
-			var classes = Array.from(imageItem.classList);
-			if(checked.every(c => classes.includes(c))) {
-				if(unchecked.every(c => !classes.includes(c))) {
+			let tagList = imageItem.dataset.tagList.split('|');
+			if(imageItem.classList.contains('favorite')) {
+				tagList.push('favorite');
+			}
+			if(checked.every(tag => tagList.includes(tag))) {
+				if(unchecked.every(tag => !tagList.includes(tag))) {
 					imageItem.classList.remove('hidden');
 				}
 			}
@@ -837,26 +905,25 @@ function showExport() {
 	// favorites
 	var textareaF = document.getElementById('export_favorites_list');
 	var favoritedArtists = false;
-	if(localStorageAccess) {
-		var favorites = localStorage.getItem('favoritedArtists');
+	loadItemBasedOnAccessType('favoritedArtists').then(state => {
 		var value = '';
-		if(favorites) {
+		if(state) {
 			value += 'You have favorited these artists:\r\n';
-			for (let key in JSON.parse(favorites)) {
-				if (JSON.parse(favorites)[key] === true) {
+			for (let key in state) {
+				if (state[key] === true) {
 					let names = key.split("|");
 					if(!names[0]) { names[0] = '(no first name)'; }
 					value += '•' + names[0] + ',' + names[1] + '\r\n';
 				}
 			}
-			value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).  It must not contain any other more than one set of curly brackets.\r\n\r\n' + favorites;
+			value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).  It must not contain any other more than one set of curly brackets.\r\n\r\n' + state;
 			textareaF.value = value;
 		} else {
 			value += 'You haven\'t favorited any artists yet.\r\n\r\n';
 			value += 'To import favorites that you exported earlier, paste the text into this text box, and click "import".';
 			textareaF.value = value;
 		}
-	}
+	});
 	// edits
 	var textareaE = document.getElementById('export_edits_list');
 	let editedArtistsArr = Array.from(editedArtists);
@@ -899,44 +966,42 @@ function exportTextarea(type) {
 }
 
 function importFavorites() {
-	if(localStorageAccess) {
-		let el = document.getElementById('export_favorites_list');
-		let favorites = el.value;
-		let startCount = (favorites.match(/{/g) || []).length;
-		let endCount = (favorites.match(/}/g) || []).length;
-		if (startCount > 1 || endCount > 1) {
-			el.value = 'That text can\'t be imported because it contains multiple curly brackets {}.'
-			return null;
-		}
-		let start = favorites.indexOf('{');
-		let end = favorites.lastIndexOf('}');
-		if (start === -1 || end === -1) {
-			el.value = 'That text can\'t be imported because it contains zero curly brackets {}.'
-			return null;
-		}
-		let jsonString = favorites.substring(start, end + 1);
-		try {
-			let jsonObject = JSON.parse(jsonString);
-		   // Check structure of each key-value pair in jsonObject
-			for (let key in jsonObject) {
-				let value = jsonObject[key];
-				if (!key.includes('|') || typeof value !== 'boolean') {
-					el.value = 'That text can\'t be imported because the JSON string it contains doesn\'t contain a valid list of artists.'
-					return null;
-				}
-			}
-			if(confirm('This will overwrite any saved favorites.  Are you sure?')) {
-				localStorage.setItem('favoritedArtists', jsonString);
-				alert('Favorites were imported!');
-				loadFavoritesState();
-			} else {
-				alert('Okay, you have cancelled the import.');
+	let el = document.getElementById('export_favorites_list');
+	let favorites = el.value;
+	let startCount = (favorites.match(/{/g) || []).length;
+	let endCount = (favorites.match(/}/g) || []).length;
+	if (startCount > 1 || endCount > 1) {
+		el.value = 'That text can\'t be imported because it contains multiple curly brackets {}.'
+		return null;
+	}
+	let start = favorites.indexOf('{');
+	let end = favorites.lastIndexOf('}');
+	if (start === -1 || end === -1) {
+		el.value = 'That text can\'t be imported because it contains zero curly brackets {}.'
+		return null;
+	}
+	let jsonString = favorites.substring(start, end + 1);
+	try {
+		let favoritesObject = JSON.parse(jsonString);
+		// check structure of each key-value pair in favoritesObject
+		for (let key in favoritesObject) {
+			let value = favoritesObject[key];
+			if (!key.includes('|') || typeof value !== 'boolean') {
+				el.value = 'That text can\'t be imported because the JSON string it contains doesn\'t contain a valid list of artists.'
 				return null;
 			}
-		} catch(e) {
-			el.value = 'That text can\'t be imported because it doesn\'t contain a valid JSON sting.'
+		}
+		if(confirm('This will overwrite any saved favorites.  Are you sure?')) {
+			storeItemBasedOnAccessType('favoritedArtists',favoritesObject,false,false);
+			alert('Favorites were imported!');
+			loadFavoritesState();
+		} else {
+			alert('Okay, you have cancelled the import.');
 			return null;
 		}
+	} catch(e) {
+		el.value = 'That text can\'t be imported because it doesn\'t contain a valid JSON sting.'
+		return null;
 	}
 }
 
@@ -1112,9 +1177,8 @@ function sortTagsByCount() {
 	}
 }
 
-function loadMostUsedTags() {
-	if(localStorageAccess) {
-		let state = JSON.parse(localStorage.getItem('mustUsedTags')) || {};
+async function loadMostUsedTags() {
+	await loadItemBasedOnAccessType('mustUsedTags').then(state => {
 		let mostUsedCategory = document.querySelector('[data-category-name="important"]');
 		for(let tag in state) {
 			if (state[tag]) {
@@ -1127,8 +1191,8 @@ function loadMostUsedTags() {
 					updateTagArrayToMatchMostUsed(true,label,tag);
 				}
 			}
-		};
-	}
+		}
+	});
 }
 
 function updateTagArrayToMatchMostUsed(isAdding,label,tag) {
@@ -1160,16 +1224,14 @@ function updateTagArrayToMatchMostUsed(isAdding,label,tag) {
 }
 
 function storeMostUsedState(label) {
-	if(localStorageAccess) {
-		var name = label.querySelector('input').name;
-		let state = JSON.parse(localStorage.getItem('mustUsedTags')) || {};
-		state[name] = label.classList.contains('is_most_used');
-		localStorage.setItem('mustUsedTags', JSON.stringify(state));
-	}
+	var name = label.querySelector('input').name;
+	storeItemBasedOnAccessType('mustUsedTags',false,name,label.classList.contains('is_most_used'));
 }
 
 function enterExitEditMostUsedMode(doExit) {
-	if(localStorageAccess) {
+	if(storingAccessType == 'none') {
+		alertNoStoringAccess(0)
+	} else {
 		let inputs = Array.from(document.querySelectorAll('input'));
 		if(editMostUsedMode || doExit) {
 			// exit edit mode
@@ -1200,8 +1262,6 @@ function enterExitEditMostUsedMode(doExit) {
 			document.getElementById('gutter').style.left =  '';
 			document.getElementById('image-container').style.marginLeft = '';
 		}
-	} else {
-		alertNoLocalStorage(0);
 	}
 }
 
@@ -1277,9 +1337,8 @@ function addOrRemoveFavorite(artist) {
 	}
 }
 
-function loadFavoritesState() {
-		if(localStorageAccess) {
-		let state = JSON.parse(localStorage.getItem('favoritedArtists')) || {};
+async function loadFavoritesState() {
+	await loadItemBasedOnAccessType('favoritedArtists').then(state => {
 		let artists = document.getElementsByClassName('image-item');
 		for(let artist of artists) {
 			let artistName = artist.getElementsByClassName('firstN')[0].textContent + '|' + artist.getElementsByClassName('lastN')[0].textContent;
@@ -1290,18 +1349,16 @@ function loadFavoritesState() {
 			}
 		}
 		updateFavoritesCount();
-	}
+	});
 }
 
 function storeFavoriteState(artist) {
-	if(localStorageAccess) {
+	if(storingAccessType == 'none') {
+		alertNoStoringAccess(0)
+	} else {
 		var artistName = artist.getElementsByClassName('firstN')[0].textContent + '|' + artist.getElementsByClassName('lastN')[0].textContent;
 		var isFavorited = artist.classList.contains('favorite');
-		let state = JSON.parse(localStorage.getItem('favoritedArtists')) || {};
-		state[artistName] = isFavorited;
-		localStorage.setItem('favoritedArtists', JSON.stringify(state));
-	} else {
-		alertNoLocalStorage(0);
+		storeItemBasedOnAccessType('favoritedArtists',false,artistName,isFavorited);
 	}
 }
 
@@ -1414,7 +1471,7 @@ function showHideLowCountTags() {
 				// skip hide
 			} else {
 				let count = parseInt(checkbox.parentNode.querySelector('.count').textContent.replace(/,/g, '').trim().substring(2),10);
-				if(count < 3) {
+				if(count <= lowCountThreshold) {
 					checkbox.checked = false;
 					checkbox.parentNode.classList.add('hidden');
 				}
@@ -1422,8 +1479,8 @@ function showHideLowCountTags() {
 		} else {
 			checkbox.parentNode.classList.remove('hidden');
 		}
-		showHideCategories();
 	});
+	showHideCategories();
 }
 
 function loadLargerImages(imageItem) {
@@ -1561,7 +1618,9 @@ function teasePartition() {
 }
 
 function editTagsClicked(clickedImageItem) {
-	if(localStorageAccess) {
+	if(storingAccessType == 'none') {
+		alertNoStoringAccess(0);
+	} else {
 		let indicatorEl = clickedImageItem.querySelector('.art_edit span');
 		if(indicatorEl.textContent == '✍️') {
 			let artistWasInEditMode = editTagsFindArtistInEditMode(clickedImageItem);
@@ -1572,8 +1631,6 @@ function editTagsClicked(clickedImageItem) {
 		} else {
 			editTagsFindArtistInEditMode();
 		}
-	} else {
-		alertNoLocalStorage(0);
 	}
 }
 
@@ -1765,66 +1822,64 @@ function focusInput(input) {
 }
 
 function saveTagsForArtist(tagArea) {
-	if(localStorageAccess) {
-		// get new tags
-		let tagLabels = tagArea.querySelectorAll('label');
-		let newTagsArr = [];
-		let artistKnown = true;
-		tagLabels.forEach(function(label) {
-			let input = label.querySelector('input');
-			if(input.value == 'known') {
-				artistKnown = input.checked;
+	// get new tags
+	let tagLabels = tagArea.querySelectorAll('label');
+	let newTagsArr = [];
+	let artistKnown = true;
+	tagLabels.forEach(function(label) {
+		let input = label.querySelector('input');
+		if(input.value == 'known') {
+			artistKnown = input.checked;
+		} else {
+			if(input.checked) {
+				newTagsArr.push(input.value);
+			}
+		}
+	});
+	// find match in artistsData
+	let firstN = tagArea.closest('.image-item').querySelector('.firstN').textContent;
+	let lastN = tagArea.closest('.image-item').querySelector('.lastN').textContent;
+	let edit = [];
+	for (let i=0, il=artistsData.length; i<il; i++) {
+		let artist = artistsData[i];
+		if(artist[0] == lastN && artist[1] == firstN) {
+			// artists can have a tag in the format of "added-YYYY-MM-DD"
+			// this was stripped earlier, so we need to add it back in
+			let oldTagsArr = artist[2].split('|');
+			for (let j=oldTagsArr.length-1; j>=0; j--) {
+				// loop backwards because it should be at the end
+				if(oldTagsArr[j].match(/added-(\d|-)*/)) {
+					newTagsArr.push(oldTagsArr[j]);
+				}
+			}
+			let newTagsStr = newTagsArr.join('|');
+			artist[2] = newTagsStr;
+			// in db, true = hide unknown, but here true = known
+			if(artistKnown) {
+				artist[3] = false;
 			} else {
-				if(input.checked) {
-					newTagsArr.push(input.value);
-				}
+				artist[3] = true;
 			}
-		});
-		// find match in artistsData
-		let firstN = tagArea.closest('.image-item').querySelector('.firstN').textContent;
-		let lastN = tagArea.closest('.image-item').querySelector('.lastN').textContent;
-		let edit = [];
-		for (let i=0, il=artistsData.length; i<il; i++) {
-			let artist = artistsData[i];
-			if(artist[0] == lastN && artist[1] == firstN) {
-				// artists can have a tag in the format of "added-YYYY-MM-DD"
-				// this was stripped earlier, so we need to add it back in
-				let oldTagsArr = artist[2].split('|');
-				for (let j=oldTagsArr.length-1; j>=0; j--) {
-					// loop backwards because it should be at the end
-					if(oldTagsArr[j].match(/added-(\d|-)*/)) {
-						newTagsArr.push(oldTagsArr[j]);
-					}
-				}
-				let newTagsStr = newTagsArr.join('|');
-				artist[2] = newTagsStr;
-				// in db, true = hide unknown, but here true = known
-				if(artistKnown) {
-					artist[3] = false;
-				} else {
-					artist[3] = true;
-				}
-				edit = artist;
-				break;
-			}
+			edit = artist;
+			break;
 		}
-		// replace old edits with new edits
-		for (let i=0, il=editedArtists.length; i<il; i++) {
-			let oldEdit = editedArtists[i];
-			if(edit[0] == oldEdit[0] && edit[1] == oldEdit[1]) {
-				editedArtists.delete(oldEdit);
-			}
-		}
-		editedArtists.add(edit)
-		// save edited artists locally
-		localStorage.setItem('editedArtists', JSON.stringify(Array.from(editedArtists)));
 	}
+	// replace old edits with new edits
+	for (let i=0, il=editedArtists.length; i<il; i++) {
+		let oldEdit = editedArtists[i];
+		if(edit[0] == oldEdit[0] && edit[1] == oldEdit[1]) {
+			editedArtists.delete(oldEdit);
+		}
+	}
+	editedArtists.add(edit)
+	// save edited artists locally
+	storeItemBasedOnAccessType('editedArtists',Array.from(editedArtists),false,false);
 }
 
 function deleteAllEdits() {
-	if(localStorageAccess) {
+	if(storingAccessType != 'none') {
 		if(confirm('This will delete all of your edits.  Are you sure?')) {
-			localStorage.removeItem('editedArtists');
+			deleteItemBasedOnAccessType('editedArtists');
 			alert('official database restored!  this page will reload...');
 			location.reload();
 		} else {
@@ -1832,30 +1887,8 @@ function deleteAllEdits() {
 		}
 	}
 }
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-// content loaded function
-document.addEventListener("DOMContentLoaded", function() {
-	//
-	//
-	startUp();
-	startUpTime = theTime.getTime();
-	//
-	//
+
+function addAllListeners() {
 	// add checkbox event listeners
 	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 	checkboxes.forEach(function(checkbox) {
@@ -2075,4 +2108,4 @@ document.addEventListener("DOMContentLoaded", function() {
 	closeFooter.addEventListener('click', function(e) {
 		document.getElementById('layout').classList.add('footerHidden');
 	});
-});
+}
