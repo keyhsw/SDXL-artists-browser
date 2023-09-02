@@ -1130,7 +1130,7 @@ var artistsData = [
 ["Smith","Jeffrey","cloudscapes|conceptual|dark|digital|dream-like|landscapes|magic-realism|surreal|added-2023-08-10",true],
 ["Smith","Kiki","body-art|contemporary|feminism|minimalism|performance|sculpture|added-2023-08-08",true],
 ["Smith","Michael James","contemporary|environmentalism|landscapes|added-2023-08-16",true],
-["Smith","Rodney","|fashion|monochromatic|photography|portraits|photography-bw|added-2023-08-16",false],
+["Smith","Rodney","fashion|monochromatic|photography|portraits|photography-bw|added-2023-08-16",false],
 ["Smith","Samantha Keely","abstract|abstract-Expressionism|contemporary|Dream-like|Loneliness|painting|added-2023-08-08",false],
 ["Smithson","Robert","conceptual|earthworks|environmentalism|land-art|post-minimalism|sculpture|added-2023-08-08",false],
 ["Solomon","Barbara Stauffacher","Commercial-art|contemporary|Graphic-Design|Graphic-design|Pop-art|added-2023-08-08",false],

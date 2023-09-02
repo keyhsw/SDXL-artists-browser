@@ -1420,6 +1420,27 @@ function copyStuffToClipboard(item,stuff) {
 			.catch(() => {
 				doAlert('😭😭 Can\'t access clipboard',1);
 			});
+	} else if(stuff == 'copyAllNames') {
+		let str = '';
+		let count = 0;
+		let imageItems = document.querySelectorAll('.image-item:not(.hidden)');
+		let imageItemsArr = Array.from(imageItems).sort(function (a, b) {
+			return a.querySelectorAll('h3 span')[1].textContent.toLowerCase().localeCompare(
+				b.querySelectorAll('h3 span')[1].textContent.toLowerCase());
+		});
+		for(i=0,il=imageItemsArr.length;i<il;i++) {
+			let item = imageItemsArr[i];
+			str += item.querySelectorAll('h3 span')[0].textContent + ' ';
+			str += item.querySelectorAll('h3 span')[1].textContent + '\n';
+			count++;
+		}
+		navigator.clipboard.writeText(str)
+			.then(() => {
+				doAlert('Copied ' + count.toLocaleString() + ' names to clipboard!',1);
+			})
+			.catch(() => {
+				doAlert('😭😭 Can\'t access clipboard',1);
+			});
 	}
 }
 
@@ -1578,6 +1599,7 @@ function movePartition(e) {
 	document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
 	document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
 	document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
+	document.getElementById('copy-all-names').style.left = 'calc(' + (gutterEndPercentX + ((100-gutterEndPercentX)/2)) + '% + 25px)';
 	imgHoverRule.style.width = gutterEndPercentX + '%';
 	// prevent text from being selected during drag
 	if (window.getSelection) {
@@ -1889,7 +1911,7 @@ function deleteAllEdits() {
 }
 
 function addAllListeners() {
-	// add checkbox event listeners
+	// checkboxes
 	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 	checkboxes.forEach(function(checkbox) {
 		let isTop = checkbox.parentNode.classList.contains('top_control');
@@ -1940,7 +1962,7 @@ function addAllListeners() {
 			}
 		}
 	});
-	// add options event listeners
+	// options
 	var infoI = document.getElementById('infoI');
 	infoI.addEventListener('click', function(e) {
 		showInstructions();
@@ -1953,7 +1975,7 @@ function addAllListeners() {
 	infoX.addEventListener('click', function(e) {
 		showExport();
 	});
-	// prompt options
+	// prompts
 	var promptA = document.getElementById('promptA');
 	promptA.addEventListener('click', function(e) {
 		highlightSelectedOption('promptA');
@@ -1972,7 +1994,7 @@ function addAllListeners() {
 		rotatePromptsImages();
 		storeOptionsState();
 	});
-	// add information event listeners
+	// information
 	var export_favorites = document.getElementById('export_favorites_button');
 	export_favorites.addEventListener('click', function(e) {
 		exportTextarea('favorites');
@@ -2001,7 +2023,7 @@ function addAllListeners() {
 			}
 		});
 	});
-	// sort options
+	// sorting
 	var sortTA = document.getElementById('sortTA');
 	sortTA.addEventListener('click', function(e) {
 		sortTagsByAlpha();
@@ -2048,7 +2070,7 @@ function addAllListeners() {
 			}
 		});
 	});
-	// add artist event listeners
+	// artists
 	var imageItems = document.getElementsByClassName('image-item');
 	Array.from(imageItems).forEach(function(imageItem) {
 		imageItem.addEventListener('mouseenter', function(e) {
@@ -2092,7 +2114,7 @@ function addAllListeners() {
 			}
 		});
 	});
-	// add gutter event listener
+	// gutter
 	var gutter = document.getElementById('gutter');
 	gutter.addEventListener('mousedown', function(e) {
 		e.preventDefault();
@@ -2103,7 +2125,12 @@ function addAllListeners() {
 			gutter.removeEventListener('mousemove', movePartition, false);
 		}, false);
 	}, false);
-	// add footer event listeners
+	// copy-all
+	var copyAllNames = document.getElementById('copy-all-names');
+	copyAllNames.addEventListener('click', function(e) {
+		copyStuffToClipboard(this, 'copyAllNames')
+	});
+	// footer
 	var closeFooter = document.getElementById('close_footer');
 	closeFooter.addEventListener('click', function(e) {
 		document.getElementById('layout').classList.add('footerHidden');

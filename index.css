@@ -114,6 +114,30 @@ h4 {
 	width: 100%;
 }
 
+#copy-all-names {
+	position: absolute;
+	z-index: 2;
+	left: calc(70% + 25px);
+	bottom: 50px;
+	transform: translateX(-50%);
+	white-space: nowrap;
+	background-color: #ffe300;
+	opacity: 0.8;
+	padding: 4px 8px;
+	border-radius: 4px;
+	box-shadow: 0 5px 10px black;
+	font-size: 12px;
+	font-weight: bold;
+	color: black;
+	cursor: pointer;
+	transition: opacity 100ms 200ms linear;
+}
+
+#image-container #copy-all-names:hover {
+	opacity: 1;
+	transition: opacity 100ms 0ms linear;
+}
+
 #alert {
 	position: fixed;
 	z-index: 1;
