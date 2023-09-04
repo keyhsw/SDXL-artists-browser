@@ -74,13 +74,11 @@ function checkStoringAccessType() {
 					})
 					.catch(error => {
 						console.warn('no settings can be saved; we only have read access to cache: ' + error);
-						alertNoStoringAccess(2000);
 						resolve();
 					});
 				})
 				.catch(error => {
 					console.warn('no settings can be saved; no access to any storage method: ' + error);
-					alertNoStoringAccess(2000);
 					resolve();
 				});
 		}
@@ -185,7 +183,7 @@ function alertNoStoringAccess(wait) {
 		msg += '1.  Try Firefox, Safari, or Edge\n'
 		msg += '2.  Download the app to use offline\n';
 		msg += '3.  On Chrome, enable 3rd-party cookies (not recommended)\n\n';
-		msg += 'This app doesn\'t use cookies, never sends data to any server, and saves all data locally.  However, when you block 3rd-party cookies in Chrome, it also blocks local data storage.  Chrome wants you to have a painful experience if you turn off 3rd-party cookies.';
+		msg += 'This app doesn\'t use cookies, never sends data to any server, and saves all data locally.  But since this app is hosted on Hugging Face, Chrome treats it as a "3rd-party".  Other browsers give you more nuanced control of your privacy settings.';
 		alert(msg);
 	},wait);
 }
@@ -775,8 +773,10 @@ function unhideBasedOnPermissiveSetting() {
 	var unHidden = document.querySelectorAll('.image-item').length - document.querySelectorAll('.image-item.hidden').length;
 	if(unHidden == 0) {
 		document.getElementById('filtersHidingAll').classList.add('shown');
+		document.getElementById('copy-all-names').style.display = 'none'
 	} else {
 		document.getElementById('filtersHidingAll').classList.remove('shown');
+		document.getElementById('copy-all-names').style.display = ''
 	}
 }
 
@@ -908,15 +908,7 @@ function showExport() {
 	loadItemBasedOnAccessType('favoritedArtists').then(state => {
 		var value = '';
 		if(state) {
-			value += 'You have favorited these artists:\r\n';
-			for (let key in state) {
-				if (state[key] === true) {
-					let names = key.split("|");
-					if(!names[0]) { names[0] = '(no first name)'; }
-					value += '•' + names[0] + ',' + names[1] + '\r\n';
-				}
-			}
-			value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).  It must not contain any other more than one set of curly brackets.\r\n\r\n' + state;
+			value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).\r\n\r\n' + JSON.stringify(state);
 			textareaF.value = value;
 		} else {
 			value += 'You haven\'t favorited any artists yet.\r\n\r\n';
@@ -940,9 +932,33 @@ function showExport() {
 	// db
 	var textareaA = document.getElementById('export_artists_list');
 	value = '';
+	artistData = artistsData.sort(function(a, b) {
+		var aValue = a[0].toLowerCase();
+		var bValue = b[0].toLowerCase();
+		return aValue.localeCompare(bValue);
+	});
 	for(i=0,il=artistsData.length;i<il;i++) {
-		let edit = artistsData[i];
-		value += '["'+edit[0]+'","'+edit[1]+'","'+edit[2]+'",'+edit[3]+'],\r\n';
+		// output artists sorted by alpha and their tags sorted by alpha
+		let artist = artistsData[i];
+		let tags = artist[2].split('|');
+		tags = tags.sort(function(a, b) {
+			var aValue = a.toLowerCase();
+			var bValue = b.toLowerCase();
+			return aValue.localeCompare(bValue);
+		});
+		let newTags = [];
+		let added = '';
+		// move the 'added' tag to the end
+		for (let i=0, il=tags.length; i<il; i++) {
+			if(tags[i].match(/added-(\d|-)*/)) {
+				added = tags[i];
+			} else {
+				newTags.push(tags[i]);
+			}
+		}
+		newTags.push(added);
+		artist[2] = newTags.join('|');
+		value += '["'+artist[0]+'","'+artist[1]+'","'+artist[2]+'",'+artist[3]+'],\r\n';
 	}
 	textareaA.value = value;
 }
