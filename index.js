@@ -8,6 +8,7 @@ var artTypes = ['🎨','🧑','🏞️'];
 var imgTypeShown = 0;
 var log = '';
 var editMostUsedMode = false;
+var informationMode = false;
 var windowWidth = 0;
 var gutterStartPosX, mouseStartPosX, gutterEndPercentX
 var style, tempStyle, stylesheet, tempStylesheet, imgHoverRule, teaseRules;
@@ -496,7 +497,8 @@ function storeCheckboxStateAll(isChecked) {
 async function loadOptionsState() {
 	await loadItemBasedOnAccessType('optionsChecked').then(state => {
 		if(state['prompt']) {
-			document.getElementById('options_prompts').querySelectorAll('.selected')[0].classList.remove('selected');
+			let optionsPrompts = document.getElementById('options_prompts');
+			optionsPrompts.querySelectorAll('.selected')[0].classList.remove('selected');
 			document.getElementById(state['prompt']).classList.add('selected');
 			if(state['prompt'] == 'promptA') {
 				imgTypeShown = 0;
@@ -533,7 +535,8 @@ function highlightSelectedOption(selected) {
 			imgTypeShown++;
 			if(imgTypeShown > 2) { imgTypeShown = 0; }
 		}
-		var links = document.getElementById('options_prompts').querySelectorAll('.link');
+		let optionsPrompts = document.getElementById('options_prompts');
+		var links = optionsPrompts.querySelectorAll('.link');
 		links.forEach(function(link) {
 			link.classList.remove('selected');
 		});
@@ -773,10 +776,8 @@ function unhideBasedOnPermissiveSetting() {
 	var unHidden = document.querySelectorAll('.image-item').length - document.querySelectorAll('.image-item.hidden').length;
 	if(unHidden == 0) {
 		document.getElementById('filtersHidingAll').classList.add('shown');
-		document.getElementById('copy-all-names').style.display = 'none'
 	} else {
 		document.getElementById('filtersHidingAll').classList.remove('shown');
-		document.getElementById('copy-all-names').style.display = ''
 	}
 }
 
@@ -889,26 +890,129 @@ function checkOrUncheckAll(isChecked) {
 	}
 }
 
-function showInstructions() {
-	document.getElementById('instructions').classList.add('shown');
-	hideToggles();
+function showInfo() {
+	document.getElementById('information').classList.add('shown');
+	informationMode = true;
 }
 
-function showAbout() {
-	document.getElementById('about').classList.add('shown');
-	hideToggles();
+function hideInfo() {
+	document.getElementById('info_search_input').value = '';
+	document.getElementById('information').classList.remove('shown');
+	informationMode = false;
+}
+
+function showInformation(tab) {
+	let information = document.querySelectorAll('.information_section');
+	information.forEach(function(element) {
+		element.classList.remove('selected');
+	});
+	document.getElementById('information_' + tab).classList.add('selected');
+	let info = document.querySelectorAll('#info_switcher h2');
+	info.forEach(function(element) {
+		element.classList.remove('selected');
+	});
+	document.getElementById('info_' + tab).classList.add('selected');
+	if (tab == 'actions') {
+		document.getElementById('info_search_input').focus();
+	} else if(tab == 'export') {
+		showExport();
+	}
+}
+
+function searchForTagsInfo() {
+	let input = document.getElementById('info_search_input');
+	if(input.dataset.match != '') {
+		event.preventDefault();
+		if(event.key === 'Backspace' || event.keyCode === 8) {
+			input.value = '';
+			input.dataset.match = '';
+		} else {
+			input.value = input.dataset.match;
+		}
+		return;
+	}
+	let output = document.getElementById('info_search_output');
+	output.innerHTML = '';
+	let matches = 0;
+	let match = '';
+	let range = 'start'
+	let tags = document.querySelectorAll('#toggles label:not(.top_control):not(.category)');
+	tags.forEach(function(tag) {
+		let tagName = tag.querySelector('input').name;
+		if(tagName.toLowerCase().indexOf(input.value.toLowerCase()) > -1) {
+			range = 'continue';
+			let label = tag.cloneNode(true);
+			label.addEventListener('change', function(e) {
+				toggleMatchingTag(this);
+			});
+			output.appendChild(label);
+			match = tagName;
+			matches++;
+		} else {
+			if(range != 'start') {
+				range = 'stop';
+			}
+		}
+		if(range == 'stop') {
+			return;
+		}
+	});
+	if(matches == 1) {
+		input.value = match;
+		event.preventDefault();
+		input.dataset.match = match;
+	} else {
+		sortInfoSearchTags(output);
+	}
+}
+
+function sortInfoSearchTags(output) {
+	let labels = Array.from(output.querySelectorAll('label'));
+	let sortByCount = document.getElementById('sortTC').classList.contains('selected');
+	labels.sort(function(a, b) {
+		if(sortByCount) {
+			var numA = parseInt(a.querySelector('.count').textContent.replace(/,/g, '').trim().substring(2),10);
+			var numB = parseInt(b.querySelector('.count').textContent.replace(/,/g, '').trim().substring(2),10);
+			return numB - numA;
+		} else {
+			var aValue = a.querySelector('input[type="checkbox"]').name;
+			var bValue = b.querySelector('input[type="checkbox"]').name;
+			return aValue.localeCompare(bValue);
+		}
+	});
+	labels.forEach(function(label) {
+		output.appendChild(label);
+	});
+}
+
+function toggleMatchingTag(searchLabel) {
+	let toggleLabels = document.getElementById('toggles').querySelectorAll('label');
+	let searchInput = searchLabel.querySelector('input');
+	let toggleMatch;
+	toggleLabels.forEach(function(label) {
+		let toggleInput = label.querySelector('input');
+		if(toggleInput.value == searchInput.value) {
+			toggleMatch = label;
+			return;
+		}
+	});
+	toggleMatch.querySelector('input').checked = searchInput.checked;
+	hideAllArtists();
+	unhideBasedOnPermissiveSetting();
+	storeCheckboxState(toggleMatch);
+	updateArtistsCountPerTag('click');
+	let input = document.getElementById('info_search_input');
+	input.focus();
 }
 
 function showExport() {
-	hideToggles();
-	document.getElementById('export').classList.add('shown');
 	// favorites
 	var textareaF = document.getElementById('export_favorites_list');
 	var favoritedArtists = false;
 	loadItemBasedOnAccessType('favoritedArtists').then(state => {
 		var value = '';
 		if(state) {
-			value += '\r\n\r\nTo import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).\r\n\r\n' + JSON.stringify(state);
+			value += 'To import these favorites later, click "copy to clipboard" and save to any file.  Then paste the text from that file into this text box, and click "import". The imported text must contain the JSON string below (the curly brackets and what\'s between them).\r\n\r\n' + JSON.stringify(state);
 			textareaF.value = value;
 		} else {
 			value += 'You haven\'t favorited any artists yet.\r\n\r\n';
@@ -1019,14 +1123,6 @@ function importFavorites() {
 		el.value = 'That text can\'t be imported because it doesn\'t contain a valid JSON sting.'
 		return null;
 	}
-}
-
-function hideInformation() {
-	var information = document.querySelectorAll('.information');
-	information.forEach(function(element) {
-		element.classList.remove('shown');
-	});
-	showToggles();
 }
 
 function sortTags() {
@@ -1450,13 +1546,17 @@ function copyStuffToClipboard(item,stuff) {
 			str += item.querySelectorAll('h3 span')[1].textContent + '\n';
 			count++;
 		}
-		navigator.clipboard.writeText(str)
-			.then(() => {
-				doAlert('Copied ' + count.toLocaleString() + ' names to clipboard!',1);
-			})
-			.catch(() => {
-				doAlert('😭😭 Can\'t access clipboard',1);
-			});
+		if(count > 0) {
+			navigator.clipboard.writeText(str)
+				.then(() => {
+					doAlert('Copied ' + count.toLocaleString() + ' names to clipboard!',1);
+				})
+				.catch(() => {
+					doAlert('😭😭 Can\'t access clipboard',1);
+				});
+		} else {
+			doAlert('No artists are visible!',1);
+		}
 	}
 }
 
@@ -1615,7 +1715,6 @@ function movePartition(e) {
 	document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
 	document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
 	document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
-	document.getElementById('copy-all-names').style.left = 'calc(' + (gutterEndPercentX + ((100-gutterEndPercentX)/2)) + '% + 25px)';
 	imgHoverRule.style.width = gutterEndPercentX + '%';
 	// prevent text from being selected during drag
 	if (window.getSelection) {
@@ -1637,22 +1736,19 @@ function teasePartition() {
 	tempStyle.id = 'teaseDragStyle';
 	document.head.appendChild(tempStyle);
 	tempStylesheet = tempStyle.sheet;
-	// add temporary transitions
-	tempStylesheet.insertRule('#toggles { transition: width 200ms ease-out; }', 0);
-	tempStylesheet.insertRule('#gutter { transition: left 200ms ease-out; }', 0);
-	tempStylesheet.insertRule('#image-container { transition: margin-left 200ms ease-out, opacity 200ms 200ms linear; }', 0);
-	document.getElementById('image-container').style.opacity = 0;
-	// set position
+	// apply temporary rules
 	window.setTimeout(function() {
-		let gutterEndPercentX = 40;
-		document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
-		document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
-		document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
-		document.getElementById('image-container').style.opacity = '';
-	},600);
+		tempStylesheet.insertRule('#gutter div { '
+			+ 'animation-name: gutter_tease;'
+			+ 'animation-duration: 800ms;'
+			+ 'animation-timing-function: ease-out;'
+			+ 'animation-iteration-count: 1;'
+			+ 'animation-direction: forward;'
+		+ '}', 0);
+	},1000);
 	window.setTimeout(function() {
 		document.getElementById('teaseDragStyle').remove();
-	},1000);
+	},2000);
 }
 
 function editTagsClicked(clickedImageItem) {
@@ -1927,6 +2023,28 @@ function deleteAllEdits() {
 }
 
 function addAllListeners() {
+	// global
+	document.addEventListener('keydown', function(event) {
+		if(event.key === 'Escape' || event.keyCode === 27) {
+			// event.key for modern browsers, event.keyCode for older ones
+			enterExitEditMostUsedMode('exit');
+			editTagsFindArtistInEditMode();
+			hideInfo();
+		}
+	});
+	document.addEventListener('keyup', function(event) {
+		if(event.key === '/') {
+			showInfo();
+			showInformation('actions');
+		}
+	});
+	document.querySelector('body').addEventListener('click', function(e) {
+		if(informationMode) {
+			if(!e.target.closest('#information')) {
+				hideInfo();
+			}
+		}
+	});
 	// checkboxes
 	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 	checkboxes.forEach(function(checkbox) {
@@ -1978,39 +2096,35 @@ function addAllListeners() {
 			}
 		}
 	});
-	// options
-	var infoI = document.getElementById('infoI');
-	infoI.addEventListener('click', function(e) {
-		showInstructions();
-	});
-	var infoA = document.getElementById('infoA');
-	infoA.addEventListener('click', function(e) {
-		showAbout();
-	});
-	var infoE = document.getElementById('infoX');
-	infoX.addEventListener('click', function(e) {
-		showExport();
-	});
-	// prompts
-	var promptA = document.getElementById('promptA');
-	promptA.addEventListener('click', function(e) {
-		highlightSelectedOption('promptA');
-		rotatePromptsImages();
-		storeOptionsState();
-	});
-	var promptP = document.getElementById('promptP');
-	promptP.addEventListener('click', function(e) {
-		highlightSelectedOption('promptP');
-		rotatePromptsImages();
-		storeOptionsState();
-	});
-	var promptL = document.getElementById('promptL');
-	promptL.addEventListener('click', function(e) {
-		highlightSelectedOption('promptL');
-		rotatePromptsImages();
-		storeOptionsState();
-	});
 	// information
+	var info_actions = document.getElementById('info_actions');
+	info_actions.addEventListener('click', function(e) {
+		showInformation('actions');
+	});
+	var info_help = document.getElementById('info_help');
+	info_help.addEventListener('click', function(e) {
+		showInformation('help');
+	});
+	var info_about = document.getElementById('info_about');
+	info_about.addEventListener('click', function(e) {
+		showInformation('about');
+	});
+	var info_export = document.getElementById('info_export');
+	info_export.addEventListener('click', function(e) {
+		showInformation('export');
+	});
+	var info_closer = document.getElementById('info_closer');
+	info_closer.addEventListener('click', function(e) {
+		hideInfo();
+	});
+	var info_search = document.getElementById('info_search_input')
+	info_search.addEventListener('keyup', function(e) {
+		searchForTagsInfo(e);
+	});
+	var copyAllNames = document.getElementById('copy-all-names');
+	copyAllNames.addEventListener('click', function(e) {
+		copyStuffToClipboard(this, 'copyAllNames')
+	});
 	var export_favorites = document.getElementById('export_favorites_button');
 	export_favorites.addEventListener('click', function(e) {
 		exportTextarea('favorites');
@@ -2031,14 +2145,27 @@ function addAllListeners() {
 	export_artists.addEventListener('click', function(e) {
 		exportTextarea('artists');
 	});
-	var information = document.querySelectorAll('.information');
-	information.forEach(function(element) {
-		element.addEventListener('mouseleave', function(e) {
-			if (!element.contains(e.relatedTarget)) {
-				hideInformation();
-			}
-		});
+	// prompts
+	/*
+	var promptA = document.getElementById('promptA');
+	promptA.addEventListener('click', function(e) {
+		highlightSelectedOption('promptA');
+		rotatePromptsImages();
+		storeOptionsState();
 	});
+	var promptP = document.getElementById('promptP');
+	promptP.addEventListener('click', function(e) {
+		highlightSelectedOption('promptP');
+		rotatePromptsImages();
+		storeOptionsState();
+	});
+	var promptL = document.getElementById('promptL');
+	promptL.addEventListener('click', function(e) {
+		highlightSelectedOption('promptL');
+		rotatePromptsImages();
+		storeOptionsState();
+	});
+	*/
 	// sorting
 	var sortTA = document.getElementById('sortTA');
 	sortTA.addEventListener('click', function(e) {
@@ -2068,14 +2195,6 @@ function addAllListeners() {
 	var mostUsed = document.getElementById('edit_most_used');
 	mostUsed.addEventListener('click', function(e) {
 		enterExitEditMostUsedMode();
-	});
-	document.addEventListener('keydown', function(event) {
-		if (event.key === 'Escape' || event.keyCode === 27) {
-			// event.key for modern browsers, event.keyCode for older ones
-			enterExitEditMostUsedMode('exit');
-			editTagsFindArtistInEditMode();
-			hideInformation();
-		}
 	});
 	var labels = document.querySelectorAll('label');
 	Array.from(labels).forEach(function(label) {
@@ -2141,11 +2260,6 @@ function addAllListeners() {
 			gutter.removeEventListener('mousemove', movePartition, false);
 		}, false);
 	}, false);
-	// copy-all
-	var copyAllNames = document.getElementById('copy-all-names');
-	copyAllNames.addEventListener('click', function(e) {
-		copyStuffToClipboard(this, 'copyAllNames')
-	});
 	// footer
 	var closeFooter = document.getElementById('close_footer');
 	closeFooter.addEventListener('click', function(e) {
