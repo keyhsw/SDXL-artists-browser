@@ -231,15 +231,123 @@ h4 {
 	font-size: 12px;
 }
 
-#toggles label {
-	margin: 0 20px 0 0;
+label {
+	display: flex;
+	gap: 8px;
+	margin: 0 20px 6px 0;
 	white-space: nowrap;
 	opacity: 0.8;
 	cursor: pointer;
 }
 
-#toggles label:hover {
+label.isChecked {
 	opacity: 1;
+}
+
+label:hover {
+	opacity: 1;
+}
+
+label.top_all {
+	font-weight: bold;
+}
+
+label.top_control {
+	color: #ffe300;
+}
+
+label.top_control.warning {
+	color: #ff0000;
+}
+
+label.no_matches {
+	opacity: 0.3;
+	cursor: default;
+}
+
+label.category {
+	color: #00d5c0;
+	font-weight: bold;
+	padding-bottom: 5px;
+	margin: 10px 40px 0 0;
+	border-bottom: 1px solid #333;
+	opacity: 1;
+}
+
+label.hidden {
+	display: none;
+}
+
+label .most_used_indicator {
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	visibility: hidden;
+	margin-right: -22px;
+	position: relative;
+	top: 1px;
+	left: 4px;
+	color: #ffe300;
+	font-style: normal;
+}
+
+input[type="checkbox"] {
+	appearance: none;
+	display: grid;
+	width: 17px;
+	height: 17px;
+	margin: 0;
+	transform: translateY(3px) translateX(0px);
+	border: 1px solid #666;
+	background-color: #444;
+	color: #444;
+	border-radius: 3px;
+	place-content: center;
+	box-shadow: inset 0px 3px 5px #00000045;
+}
+
+label.category input[type="checkbox"] {
+	border-color: rgba(0, 213, 192, 0.5);
+}
+
+label.top_control input[type="checkbox"] {
+	border-color: rgba(255, 227, 0, 0.5);
+}
+
+label span:first-of-type {
+	opacity: 0.8;
+}
+
+label.category span:first-of-type {
+	opacity: 1;
+}
+
+label.isChecked span:first-of-type {
+	opacity: 1;
+}
+
+input[type="checkbox"]:checked {
+	width: 23px;
+	height: 23px;
+	transform: translateY(0px) translateX(-3px);
+	margin-bottom: -1px;
+	margin-right: -6px;
+	border: none;
+	background-color: currentColor;
+	color: currentColor;
+}
+
+input[type="checkbox"]::before {
+	content: "";
+	width: 18px;
+	height: 18px;
+	clip-path: polygon(43% 78%, 39% 78%, 18% 56%, 18% 53%, 26% 45%, 30% 45%, 41% 56%, 69% 25%, 73% 25%, 82% 34%, 82% 36%);
+	transform: scale(0);
+	background-color: #000;
+}
+
+input[type="checkbox"]:checked::before {
+	transform: scale(1);
 }
 
 #toggles #artistsShown {
@@ -249,48 +357,6 @@ h4 {
 	top: 1px;
 	color: #ffe300;
 	opacity: 0.8;
-}
-
-#toggles label.top_all {
-	font-weight: bold;
-}
-
-#toggles label.top_control {
-	color: #ffe300;
-}
-
-#toggles label.top_control.warning {
-	color: #ff0000;
-}
-
-#toggles label.no_matches {
-	opacity: 0.3;
-	cursor: default;
-}
-
-#toggles label.category {
-	color: #00d5c0;
-	font-weight: bold;
-	padding-bottom: 5px;
-	margin: 10px 40px 0 0;
-	border-bottom: 1px solid #333;
-}
-
-#toggles label.hidden {
-	display: none;
-}
-
-#toggles label .most_used_indicator {
-	display: inline-block;
-	width: 14px;
-	height: 14px;
-	visibility: hidden;
-	margin-right: -14px;
-	position: relative;
-	top: 1px;
-	left: 4px;
-	color: #ffe300;
-	font-style: normal;
 }
 
 #toggles #artistsMatching {
@@ -518,6 +584,7 @@ h4 {
 }
 
 #info_search_output {
+	padding: 8px 0 0 8px;
 	flex-grow: 1;
 	/* min-height is needed for flex-grow to to work */
 	min-height: 35px;
@@ -526,6 +593,7 @@ h4 {
 	overflow-y: scroll;
 	background-color: #333;
 	border-radius: 4px;
+	box-sizing: border-box;
 }
 
 #info_search_output label {

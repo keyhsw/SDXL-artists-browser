@@ -17,6 +17,7 @@ var startUpTime;
 var tagsConcatenated = new Set();
 var editedArtists = new Set();
 var storingAccessType = 'none';
+var start = performance.now();
 const lowCountThreshold = 3;
 //
 //
@@ -301,7 +302,7 @@ function insertArtists() {
 		imgTools.appendChild(artEdit);
 		var artSearch = document.createElement('a');
 		artSearch.className = 'art_search';
-		artSearch.href = 'https://www.bing.com/images/search?q=' + artist[1].replace(' ','+') + '+' + artist[0].replace(' ','+') + '+artwork';
+		artSearch.href = 'https://www.bing.com/images/search?q=' + artist[1].replace(' ','+') + '+' + artist[0].replace(' ','+') + '+artist';
 		artSearch.target = '_blank';
 		var artSearchSpan = document.createElement('span');
 		artSearchSpan.textContent = '🌐';
@@ -455,6 +456,7 @@ async function loadCheckboxesState() {
 		for (let name in state) {
 			if (document.querySelector('input[name="'+name+'"]')) {
 				document.querySelector('input[name="'+name+'"]').checked = state[name];
+				styleLabelToCheckbox(document.querySelector('input[name="'+name+'"]'));
 				if(name != 'mode' && name != 'use_categories') {
 					if(!state[name]) {
 						allChecked = false;
@@ -469,7 +471,9 @@ async function loadCheckboxesState() {
 }
 
 function storeCheckboxState(checkbox) {
-	storeItemBasedOnAccessType('tagsChecked',false,checkbox.name,checkbox.checked);
+	if(checkbox.name != 'check-all') {
+		storeItemBasedOnAccessType('tagsChecked',false,checkbox.name,checkbox.checked);
+	}
 }
 
 function storeCheckboxStateAll(isChecked) {
@@ -732,6 +736,14 @@ function updateCountOfAllArtistsShown(divs, hiddenDivs) {
 	shown.textContent = 'shown - ' + visible.toLocaleString() + ' / ' + percent;
 }
 
+function styleLabelToCheckbox(checkbox) {
+	if(checkbox.checked) {
+		checkbox.parentNode.classList.add('isChecked');
+	} else {
+		checkbox.parentNode.classList.remove('isChecked');
+	}
+}
+
 function checkAllInCategory(theCheckbox) {
 	let thisLabel = theCheckbox.parentNode;
 	if (thisLabel.classList.contains('category')) {
@@ -904,6 +916,7 @@ function checkOrUncheckAll(isChecked) {
 					if(!isHidden) {
 						// hidden/disabled label must not be checked
 						checkbox.checked = true;
+						styleLabelToCheckbox(checkbox);
 					}
 				};
 			});
@@ -919,6 +932,7 @@ function checkOrUncheckAll(isChecked) {
 			let isTop = label.classList.contains('top_control');
 			if(!isTop || checkbox.name == 'favorite') {
 				checkbox.checked = false;
+				styleLabelToCheckbox(checkbox);
 			}
 		});
 	}
@@ -1033,6 +1047,7 @@ function toggleMatchingTag(searchLabel) {
 	}
 	toggleMatch.querySelector('input').checked = searchInput.checked;
 	toggleMatch.classList.remove('hidden');
+	styleLabelToCheckbox(toggleMatch.querySelector('input'));
 	hideAllArtists();
 	unhideBasedOnPermissiveSetting();
 	storeCheckboxState(toggleMatch);
@@ -1810,6 +1825,10 @@ function movePartition(e) {
 	document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
 	imgHoverRule.style.width = gutterEndPercentX + '%';
 	// prevent text from being selected during drag
+	clearSelection();
+}
+
+function clearSelection() {
 	if (window.getSelection) {
 		if (window.getSelection().empty) {
 			// Chrome
@@ -1999,8 +2018,8 @@ function searchForTags(input, event, tagList) {
 	let matches = 0;
 	let match = '';
 	let range = 'start'
-	for(i=0,il=tags.length; i<il; i++) {
-		let tag = tags[i];
+	for(i=0,il=tagsConcatenated.length; i<il; i++) {
+		let tag = tagsConcatenated[i];
 		for (var i=0, il=tagList.length; i<il; i++) {
 			if(typeof tagList[i] == 'string') {
 				// first tagList item is boolean
@@ -2028,7 +2047,6 @@ function searchForTags(input, event, tagList) {
 			break;
 		}
 	}
-
 	if(matches == 1) {
 		input.value = match;
 		event.preventDefault();
@@ -2151,7 +2169,6 @@ function addAllListeners() {
 				checkAllInCategory(e.target);
 				hideAllArtists();
 				unhideBasedOnPermissiveSetting();
-				storeCheckboxState(e.target);
 				updateArtistsCountPerTag('click');
 				hideLowCountSingle(e.target);
 			});
@@ -2171,28 +2188,30 @@ function addAllListeners() {
 					hideAllArtists();
 					unhideBasedOnPermissiveSetting();
 					updateArtistsCountPerTag('click');
-					storeCheckboxState(e.target);
 				});
 			} else if(checkbox.name == 'use_categories') {
 				checkbox.addEventListener('change', function(e) {
 					showHideCategories();
 					sortTags();
-					storeCheckboxState(e.target);
 				});
 			} else if(checkbox.name == 'low_count') {
 				checkbox.addEventListener('change', function(e) {
 					showHideLowCountTags();
-					storeCheckboxState(e.target);
 				});
 			} else if(checkbox.name == 'deprecated') {
 				checkbox.addEventListener('change', function(e) {
 					hideAllArtists();
 					unhideBasedOnPermissiveSetting();
 					updateArtistsCountPerTag('click');
-					storeCheckboxState(e.target);
 				});
 			}
 		}
+		// all checkboxes
+		checkbox.addEventListener('change', function(e) {
+			styleLabelToCheckbox(this);
+			clearSelection();
+			storeCheckboxState(e.target);
+		});
 	});
 	// information
 	var info_actions = document.getElementById('info_actions');
@@ -2231,11 +2250,8 @@ function addAllListeners() {
 		} else {
 			checkAll.checked = true;
 		}
-		checkOrUncheckAll(checkAll.checked);
-		storeCheckboxStateAll(checkAll.checked);
-		hideAllArtists();
-		unhideBasedOnPermissiveSetting();
-		updateArtistsCountPerTag('click');
+		let clickEvent = new Event('change');
+		checkAll.dispatchEvent(clickEvent);
 	});
 	var copyAllNames = document.getElementById('copy-all-names');
 	copyAllNames.addEventListener('click', function(e) {
