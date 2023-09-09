@@ -2133,7 +2133,7 @@ function addAllListeners() {
 			showInformation('actions');
 		}
 	});
-	document.querySelector('body').addEventListener('click', function(e) {
+	document.querySelector('#layout').addEventListener('click', function(e) {
 		if(informationMode) {
 			e.preventDefault();
 			if(!e.target.closest('#information')) {
@@ -2222,6 +2222,20 @@ function addAllListeners() {
 	var info_search = document.getElementById('info_search_input')
 	info_search.addEventListener('keyup', function(e) {
 		searchForTagsInfo(e);
+	});
+	var infoToggleAll = document.getElementById('info-toggle-all');
+	infoToggleAll.addEventListener('click', function(e) {
+		let checkAll = document.querySelector('input[name="check-all"]');
+		if(checkAll.checked) {
+			checkAll.checked = false;
+		} else {
+			checkAll.checked = true;
+		}
+		checkOrUncheckAll(checkAll.checked);
+		storeCheckboxStateAll(checkAll.checked);
+		hideAllArtists();
+		unhideBasedOnPermissiveSetting();
+		updateArtistsCountPerTag('click');
 	});
 	var copyAllNames = document.getElementById('copy-all-names');
 	copyAllNames.addEventListener('click', function(e) {

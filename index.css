@@ -531,6 +531,7 @@ h4 {
 #info_search_output label {
 	opacity: 0.8;
 	padding: 5px;
+	cursor: pointer;
 }
 
 #info_search_output label:hover {

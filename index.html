@@ -13,199 +13,6 @@
 <body>
 	<div id="layout">
 		<div id="rows">
-			<div id="information">
-				<div id="info_switcher">
-					<h2 id="info_actions" class="selected">🔍&nbsp;&nbsp;&nbsp;actions</h2>
-					<h2 id="info_help">📓&nbsp;&nbsp;&nbsp;manual</h2>
-					<h2 id="info_tips">📸&nbsp;&nbsp;&nbsp;tips</h2>
-					<h2 id="info_about">💫&nbsp;&nbsp;&nbsp;about</h2>
-					<h2 id="info_export">📤&nbsp;&nbsp;&nbsp;export</h2>
-					<h2 id="info_closer">ESC</h2>
-				</div>
-				<div id="information_actions" class="information_section selected">
-					<div class="buttons">
-						<div id="copy-all-names">copy visible artist names</div>
-						<div id="random-tags">see some random tags</div>
-					</div>
-					<input type="text" id="info_search_input" name="info_search_input" value="" data-match="" placeholder="search for tags" autocomplete="off">
-					<div id="info_search_output"></div>
-				</div>
-				<div id="information_help" class="information_section">
-					<div>
-						<h3>Click an artist's...</h3>
-						<ul>
-							<li><strong>name</strong> to copy them to clipboard</li>
-							<li><strong>tags</strong> to copy them to clipboard</li>
-							<li><strong>⭐️</strong> to toggle them as favorited</li>
-							<li><strong>✍️</strong> enters offline tag-editing mode, see below</li>
-						</ul>
-						<h3>Permissive filter</h3>
-						<ul>
-							<li><strong>checked:</strong> artists matching <strong>any</strong> checked tags</li>
-							<li><strong>unchecked:</strong> artists matching <strong>all</strong> checked tags</li>
-							<li>useful for filtering your favorites</li>
-						</ul>
-						<h3>Hide low-use tags</h3>
-						<ul>
-							<li><strong>checked:</strong> hides tags that match less than 4 artists, ~50% of all tags</li>
-							<li>you can access hidden tags via search, or if they're marked as important</li>
-						</ul>
-						<h3>Hide unknown to SDXL</h3>
-						<ul>
-							<li>I've hand verified that SDXL doesn't know these artists' styles</li>
-							<li>If you prompt with their names, the result will be unlike their actual style and generic, and you can achieve similar results by prompting "a painting", etc.</li>
-							<li>They're included in the database for the record of what SDXL doesn't know</li>
-						</ul>
-						<h3>Important tags</h3>
-						<ul>
-							<li>Click <strong>edit</strong> under the important category to add or remove tags</li>
-						</ul>
-						<h3>✍️ Offline tag-editing</h3>
-						<ul>
-							<li>If you are viewing this from Hugging Face, your tag edits won't be applied.  They'll be saved and applied if you've downloaded the repository and are viewing your local file.  In both cases, your edits will be available for export 📥 as text.  If you want to suggest tag improvements for everyone's benefit, edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
-						</ul>
-					</div>
-				</div>
-				<div id="information_tips" class="information_section">
-					<div>
-						<h3>Prompting artist styles with SDXL</h3>
-						<ul>
-							<li>I recommend this 3-section prompt (auto1111 syntax):
-								<ul>
-									<li><b>(</b><i>style stuff</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b><i>content stuff</i><b>:1.0)</b></li>
-								</ul>
-							</li>
-							<li>For example:
-								<ul>
-									<li>safest bet, needed for photographers:</li>
-									<li><b>(</b>by <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>a landscape, water under a bridge<b>:1.0)</b></li>
-									<li>stronger style, not for photographers:</li>
-									<li><b>(</b>artwork in the style of <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>a landscape, water under a bridge<b>:1.0)</b></li>
-								</ul>
-							</li>
-						</ul>
-						<h3>Explanation of the 3-section prompt</h3>
-						<ul>
-							<li>The reason for this 3-section prompt is that it's very easy for common words to erase the style.  For example, for some artists that never made portraits, using the word "portrait" in your prompt can erase their style, making the image style generic.</li>
-							<li>To overcome this, we add weight to the <i>style stuff</i> and to remove weight from the <i>content stuff</i>.  I recommend starting with 1.5 and 1.0 respectively, which gives slightly more weight to the style.  As you edit the <i>content stuff</i>, if the style disappears, try other weights, e.g 2.0 and 0.5.</li>
-							<li>The part in the middle "<b>(</b>an image<b>:0.5)</b>" doesn't change the output, but it's sometimes needed when the <i>content stuff</i> weight is less than 1.0.  You can try removing it, and if your output looks garbled, try putting it back in.</li>
-						</ul>
-						<h3>An artist's style includes much more than their medium</h3>
-						<ul>
-							<li>Using an artists name influences the output in several ways beyond the medium, e.g. "painting style".  It includes typical subject matter, colors palette, clothing and hairstyles of the artist's time, composition and layout, even specific faces of people, and other aesthetic choices.</li>
-							<li>It can be hard to get just the aesthetic style and not the other stuff, e.g. a renaissance painting style with modern clothing.</li>
-							<li>Sometimes you can strengthen just the artist's style by putting their medium in the prompt like this:
-								<ul>
-									<li><b>(</b><strong>watercolor</strong> in the style of <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b><i>content stuff</i><b>:1.0)</b></li>
-								</ul>
-							</li>
-							<li>This helps especially when the artist is famous for multiple mediums.  But sometimes it reduces the artist's specific style and more matches the generic style of the medium.</li>
-							<li>Also try adding the <strong>opposite</strong> medium/style to the <strong>negative</strong> prompt.  For example, if the artist you want is a photographer, try "painting, illustration" in the negative prompt.</li>
-						</ul>
-						<h3>Combining the styles of multiple artists</h3>
-						<ul>
-							<li>I recommend either of these patterns (auto1111 syntax):
-								<ul>
-									<li><b>(</b>by <i>artist A</i>, by <i>artist B</i><b>:2.0)</b>, <i>the rest of the prompt</i></li>
-									<li><b>(</b>by <b>[</b><i>artist A</i><b>|</b><i>artist B</i><b>]</b><b>:2.0)</b>, <i>the rest of the prompt</i></li>
-									<li>Which is best depends on the artists.  Try both!</li>
-								</ul>
-							</li>
-							<li>To make one of the artists styles more dominant, make it first in the prompt.  If it's still not strong enough repeat the artist's name.  For example:<br>
-							<b>[</b><i>artist A</i><b>|</b><i>artist A</i><b>|</b><i>artist B</i><b>]</b></li>
-							<li>I've found that adding weight to one of the artists doesn't work, but your mileage may vary.
-						</ul>
-						<h3>Making non-photographic mediums look more photographic</h3>
-						<ul>
-							<li>It's worth trying "photograph by <i>illustration artist</i>" along with "illustration" in the negative prompt.  But that often won't work.
-							<li>It's also worth trying "<b>[</b><i>by artist A</i><b>:</b><i>style of photograph</i><b>:0.5]</b>".  This will start with the artist style and switch to photograph style after 50% of the steps.  Adjust the decimal as needed.</li>
-							<li>I've had best results by sending the output to img2img, then replacing the artist's name in the prompt with "photograph", and setting the de-noise very low.  Then feed the result back to img2img, and slowly nudge it towards photographic.  That will at least maintain the composition.</li>
-							<li>If Reference Controlnet for SDXL has been released, that should work well.</li>
-						</ul>
-						<h3>Why does the 🎨 prompt sometimes match the 🧑 or 🏞️ prompt?</h3>
-						<ul>
-							<li>
-								The prompt used for the 🎨 images is the intentionally generic, "an image".  If that results in a portrait, that's useful to know.  It indicates that, for that artist, SDXL is more strongly trained to output portraits.  Anything in your prompt that's not related to a person will harder to prompt for in that artist's style.
-							</li>
-						</ul>
-					</div>
-				</div>
-				<div id="information_about" class="information_section">
-					<div>
-						<h3>SDXL Artist Style Explorer</h3>
-						<ul>
-							<li>Code and tagging by <a href="https://huggingface.co/mattthew" target="_blank">Mattthew</a></li>
-						</ul>
-						<h3>How to support this project</h3>
-						<ul>
-							<li>Please tell a friends or share on your socials</li>
-							<li>Suggest artists I should add or remove</li>
-							<li>Suggest features and report bugs</li>
-							<li>Leave all feedback on <a href="https://huggingface.co/spaces/mattthew/SDXL-artists-browser/discussions" target="_blank">Huggingface</a></li>
-						</ul>
-						<h3>Workflow for these style images</h3>
-						<ul>
-							<li>
-								<strong>All:</strong><br>
-								Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 5, Seed: 47, Size: 1024x1024, Model hash: 31e35c80fc, Model: sd_xl_base_1.0, Version: v1.5.1, <strong>(refiner not used)</strong>
-							</li>
-							<li>
-								<strong>🎨 prompt:</strong><br>
-								<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:1.5)</b></li>
-							 	<strong>negative:</strong><br>
-							 	edges, borders
-							</li>
-							<li>
-							 	<strong>🧑 prompt:</strong><br>
-								<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>landscape, outdoor natural scenery, water, bridge<b>:1.0)</b></li>
-							 	<strong>negative:</strong><br>
-							 	edges, borders, inside, people, person
-							</li>
-							<li>
-							 	<strong>🏞️ prompt:</strong><br>
-								<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>portrait of a person, inside a place<b>:1.0)</b></li>
-							 	<strong>negative:</strong><br>
-							 	edges, borders, outside, about, the artist, themselves
-							</li>
-							<li>
-								<strong>exceptions:</strong><br>
-								For most photographers, "artwork in the style of <i>name</i>" was replaced with "by <i>name</i>".  Rarely, seed 48 was used.</li>
-						</ul>
-						<h3>Disclaimers</h3>
-						<ul>
-							<li>This tools is just for fun.  This information may NOT be correct! The tags are mostly from manual input with a mix of other sources, some AI generated.</li>
-							<li>Remember, SDXL is only a crude imitation of these artists.  Check out these artists' actual artwork for more inspiration!</li>
-							<li>This database has more straight white male artists than in the actual population.  That's because they've been favored by art-collectors, past and present.  Please suggest artists I should add.</li>
-							<li>My code doesn't use cookies and sends nothing to any server.  But it's hosted on Huggingface, and I can't control if they cookie you</li>
-							<li>Open source.  Creatives Commons license.  Download for free.</li>
-							<li>I don't get nor do I want compensation for this.  Getting thanks feels great!</li>
-							<li>I'm not affiliated with Stability AI</li>
-							<li>Use at your own risk.  Contains mild nudity 🧟</li>
-						</ul>
-					</div>
-				</div>
-				<div id="information_export" class="information_section">
-					<div>
-						<h3>Export/Import favorited artists</h3>
-						<textarea id="export_favorites_list" value="" placeholder="You haven't favorited any artists yet." autocomplete="off"></textarea>
-						<div class="buttons">
-							<div id="export_favorites_button">copy to clipboard</div>
-							<div id="import_favorites_button">import</div>
-						</div>
-						<h3>Export tag-edits to send to author</h3>
-						<textarea id="export_edits_list" value="" placeholder="You haven't edited any tags yet." autocomplete="off" disabled="true"></textarea>
-						<div class="buttons">
-							<div id="export_edits_button">copy to clipboard</div>
-							<div id="delete_edits_button">restore official database</div>
-						</div>
-						<h3>Export database</h3>
-						<textarea id="export_artists_list" value="" placeholder="If this is visible, there's a bug" autocomplete="off" disabled="true"></textarea>
-						<div class="buttons">
-							<div id="export_artists_button">copy to clipboard</div>
-						</div>
-					</div>
-				</div>
-			</div>
 			<div id="toggles">
 				<div id="options_info">
 					<span class="count">press the <i>/</i> key</span>
@@ -290,7 +97,201 @@
 				-->
 			</div>
 		</div>
+	</div>
+	<div id="information">
+		<div id="info_switcher">
+			<h2 id="info_actions" class="selected">🔍&nbsp;&nbsp;&nbsp;actions</h2>
+			<h2 id="info_help">📓&nbsp;&nbsp;&nbsp;manual</h2>
+			<h2 id="info_tips">📸&nbsp;&nbsp;&nbsp;tips</h2>
+			<h2 id="info_about">💫&nbsp;&nbsp;&nbsp;about</h2>
+			<h2 id="info_export">📤&nbsp;&nbsp;&nbsp;export</h2>
+			<h2 id="info_closer">ESC</h2>
 		</div>
-		<div id="alert"></div>
-	</body>
-	</html>
+		<div id="information_actions" class="information_section selected">
+			<div class="buttons">
+				<div id="info-toggle-all">toggle all tags</div>
+				<div id="random-tags">see some random tags</div>
+				<div id="copy-all-names">copy visible artist names</div>
+			</div>
+			<input type="text" id="info_search_input" name="info_search_input" value="" data-match="" placeholder="search for tags" autocomplete="off">
+			<div id="info_search_output"></div>
+		</div>
+		<div id="information_help" class="information_section">
+			<div>
+				<h3>Click an artist's...</h3>
+				<ul>
+					<li><strong>name</strong> to copy them to clipboard</li>
+					<li><strong>tags</strong> to copy them to clipboard</li>
+					<li><strong>⭐️</strong> to toggle them as favorited</li>
+					<li><strong>✍️</strong> enters offline tag-editing mode, see below</li>
+				</ul>
+				<h3>Permissive filter</h3>
+				<ul>
+					<li><strong>checked:</strong> artists matching <strong>any</strong> checked tags</li>
+					<li><strong>unchecked:</strong> artists matching <strong>all</strong> checked tags</li>
+					<li>useful for filtering your favorites</li>
+				</ul>
+				<h3>Hide low-use tags</h3>
+				<ul>
+					<li><strong>checked:</strong> hides tags that match less than 4 artists, ~50% of all tags</li>
+					<li>you can access hidden tags via search, or if they're marked as important</li>
+				</ul>
+				<h3>Hide unknown to SDXL</h3>
+				<ul>
+					<li>I've hand verified that SDXL doesn't know these artists' styles</li>
+					<li>If you prompt with their names, the result will be unlike their actual style and generic, and you can achieve similar results by prompting "a painting", etc.</li>
+					<li>They're included in the database for the record of what SDXL doesn't know</li>
+				</ul>
+				<h3>Important tags</h3>
+				<ul>
+					<li>Click <strong>edit</strong> under the important category to add or remove tags</li>
+				</ul>
+				<h3>✍️ Offline tag-editing</h3>
+				<ul>
+					<li>If you are viewing this from Hugging Face, your tag edits won't be applied.  They'll be saved and applied if you've downloaded the repository and are viewing your local file.  In both cases, your edits will be available for export 📥 as text.  If you want to suggest tag improvements for everyone's benefit, edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
+				</ul>
+			</div>
+		</div>
+		<div id="information_tips" class="information_section">
+			<div>
+				<h3>Prompting artist styles with SDXL</h3>
+				<ul>
+					<li>I recommend this 3-section prompt (auto1111 syntax):
+						<ul>
+							<li><b>(</b><i>style stuff</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b><i>content stuff</i><b>:1.0)</b></li>
+						</ul>
+					</li>
+					<li>For example:
+						<ul>
+							<li>safest bet, needed for photographers:</li>
+							<li><b>(</b>by <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>a landscape, water under a bridge<b>:1.0)</b></li>
+							<li>stronger style, not for photographers:</li>
+							<li><b>(</b>artwork in the style of <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>a landscape, water under a bridge<b>:1.0)</b></li>
+						</ul>
+					</li>
+				</ul>
+				<h3>Explanation of the 3-section prompt</h3>
+				<ul>
+					<li>The reason for this 3-section prompt is that it's very easy for common words to erase the style.  For example, for some artists that never made portraits, using the word "portrait" in your prompt can erase their style, making the image style generic.</li>
+					<li>To overcome this, we add weight to the <i>style stuff</i> and to remove weight from the <i>content stuff</i>.  I recommend starting with 1.5 and 1.0 respectively, which gives slightly more weight to the style.  As you edit the <i>content stuff</i>, if the style disappears, try other weights, e.g 2.0 and 0.5.</li>
+					<li>The part in the middle "<b>(</b>an image<b>:0.5)</b>" doesn't change the output, but it's sometimes needed when the <i>content stuff</i> weight is less than 1.0.  You can try removing it, and if your output looks garbled, try putting it back in.</li>
+				</ul>
+				<h3>An artist's style includes much more than their medium</h3>
+				<ul>
+					<li>Using an artists name influences the output in several ways beyond the medium, e.g. "painting style".  It includes typical subject matter, colors palette, clothing and hairstyles of the artist's time, composition and layout, even specific faces of people, and other aesthetic choices.</li>
+					<li>It can be hard to get just the aesthetic style and not the other stuff, e.g. a renaissance painting style with modern clothing.</li>
+					<li>Sometimes you can strengthen just the artist's style by putting their medium in the prompt like this:
+						<ul>
+							<li><b>(</b><strong>watercolor</strong> in the style of <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b><i>content stuff</i><b>:1.0)</b></li>
+						</ul>
+					</li>
+					<li>This helps especially when the artist is famous for multiple mediums.  But sometimes it reduces the artist's specific style and more matches the generic style of the medium.</li>
+					<li>Also try adding the <strong>opposite</strong> medium/style to the <strong>negative</strong> prompt.  For example, if the artist you want is a photographer, try "painting, illustration" in the negative prompt.</li>
+				</ul>
+				<h3>Combining the styles of multiple artists</h3>
+				<ul>
+					<li>I recommend either of these patterns (auto1111 syntax):
+						<ul>
+							<li><b>(</b>by <i>artist A</i>, by <i>artist B</i><b>:2.0)</b>, <i>the rest of the prompt</i></li>
+							<li><b>(</b>by <b>[</b><i>artist A</i><b>|</b><i>artist B</i><b>]</b><b>:2.0)</b>, <i>the rest of the prompt</i></li>
+							<li>Which is best depends on the artists.  Try both!</li>
+						</ul>
+					</li>
+					<li>To make one of the artists styles more dominant, make it first in the prompt.  If it's still not strong enough repeat the artist's name.  For example:<br>
+					<b>[</b><i>artist A</i><b>|</b><i>artist A</i><b>|</b><i>artist B</i><b>]</b></li>
+					<li>I've found that adding weight to one of the artists doesn't work, but your mileage may vary.
+				</ul>
+				<h3>Making non-photographic mediums look more photographic</h3>
+				<ul>
+					<li>It's worth trying "photograph by <i>illustration artist</i>" along with "illustration" in the negative prompt.  But that often won't work.
+					<li>It's also worth trying "<b>[</b><i>by artist A</i><b>:</b><i>style of photograph</i><b>:0.5]</b>".  This will start with the artist style and switch to photograph style after 50% of the steps.  Adjust the decimal as needed.</li>
+					<li>I've had best results by sending the output to img2img, then replacing the artist's name in the prompt with "photograph", and setting the de-noise very low.  Then feed the result back to img2img, and slowly nudge it towards photographic.  That will at least maintain the composition.</li>
+					<li>If Reference Controlnet for SDXL has been released, that should work well.</li>
+				</ul>
+				<h3>Why does the 🎨 prompt sometimes match the 🧑 or 🏞️ prompt?</h3>
+				<ul>
+					<li>
+						The prompt used for the 🎨 images is the intentionally generic, "an image".  If that results in a portrait, that's useful to know.  It indicates that, for that artist, SDXL is more strongly trained to output portraits.  Anything in your prompt that's not related to a person will harder to prompt for in that artist's style.
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div id="information_about" class="information_section">
+			<div>
+				<h3>SDXL Artist Style Explorer</h3>
+				<ul>
+					<li>Code and tagging by <a href="https://huggingface.co/mattthew" target="_blank">Mattthew</a></li>
+				</ul>
+				<h3>How to support this project</h3>
+				<ul>
+					<li>Please tell a friends or share on your socials</li>
+					<li>Suggest artists I should add or remove</li>
+					<li>Suggest features and report bugs</li>
+					<li>Leave all feedback on <a href="https://huggingface.co/spaces/mattthew/SDXL-artists-browser/discussions" target="_blank">Huggingface</a></li>
+				</ul>
+				<h3>Workflow for these style images</h3>
+				<ul>
+					<li>
+						<strong>All:</strong><br>
+						Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 5, Seed: 47, Size: 1024x1024, Model hash: 31e35c80fc, Model: sd_xl_base_1.0, Version: v1.5.1, <strong>(refiner not used)</strong>
+					</li>
+					<li>
+						<strong>🎨 prompt:</strong><br>
+						<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:1.5)</b></li>
+					 	<strong>negative:</strong><br>
+					 	edges, borders
+					</li>
+					<li>
+					 	<strong>🧑 prompt:</strong><br>
+						<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>landscape, outdoor natural scenery, water, bridge<b>:1.0)</b></li>
+					 	<strong>negative:</strong><br>
+					 	edges, borders, inside, people, person
+					</li>
+					<li>
+					 	<strong>🏞️ prompt:</strong><br>
+						<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>portrait of a person, inside a place<b>:1.0)</b></li>
+					 	<strong>negative:</strong><br>
+					 	edges, borders, outside, about, the artist, themselves
+					</li>
+					<li>
+						<strong>exceptions:</strong><br>
+						For most photographers, "artwork in the style of <i>name</i>" was replaced with "by <i>name</i>".  Rarely, seed 48 was used.</li>
+				</ul>
+				<h3>Disclaimers</h3>
+				<ul>
+					<li>This tools is just for fun.  This information may NOT be correct! The tags are mostly from manual input with a mix of other sources, some AI generated.</li>
+					<li>Remember, SDXL is only a crude imitation of these artists.  Check out these artists' actual artwork for more inspiration!</li>
+					<li>This database has more straight white male artists than in the actual population.  That's because they've been favored by art-collectors, past and present.  Please suggest artists I should add.</li>
+					<li>My code doesn't use cookies and sends nothing to any server.  But it's hosted on Huggingface, and I can't control if they cookie you</li>
+					<li>Open source.  Creatives Commons license.  Download for free.</li>
+					<li>I don't get nor do I want compensation for this.  Getting thanks feels great!</li>
+					<li>I'm not affiliated with Stability AI</li>
+					<li>Use at your own risk.  Contains mild nudity 🧟</li>
+				</ul>
+			</div>
+		</div>
+		<div id="information_export" class="information_section">
+			<div>
+				<h3>Export/Import favorited artists</h3>
+				<textarea id="export_favorites_list" value="" placeholder="You haven't favorited any artists yet." autocomplete="off"></textarea>
+				<div class="buttons">
+					<div id="export_favorites_button">copy to clipboard</div>
+					<div id="import_favorites_button">import</div>
+				</div>
+				<h3>Export tag-edits to send to author</h3>
+				<textarea id="export_edits_list" value="" placeholder="You haven't edited any tags yet." autocomplete="off" disabled="true"></textarea>
+				<div class="buttons">
+					<div id="export_edits_button">copy to clipboard</div>
+					<div id="delete_edits_button">restore official database</div>
+				</div>
+				<h3>Export database</h3>
+				<textarea id="export_artists_list" value="" placeholder="If this is visible, there's a bug" autocomplete="off" disabled="true"></textarea>
+				<div class="buttons">
+					<div id="export_artists_button">copy to clipboard</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="alert"></div>
+</body>
+</html>
