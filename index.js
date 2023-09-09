@@ -1047,11 +1047,7 @@ function toggleMatchingTag(searchLabel) {
 	}
 	toggleMatch.querySelector('input').checked = searchInput.checked;
 	toggleMatch.classList.remove('hidden');
-	styleLabelToCheckbox(toggleMatch.querySelector('input'));
-	hideAllArtists();
-	unhideBasedOnPermissiveSetting();
-	storeCheckboxState(toggleMatch);
-	updateArtistsCountPerTag('click');
+	toggleMatch.querySelector('input').dispatchEvent(new Event('change'));
 	let input = document.getElementById('info_search_input');
 	input.focus();
 }
@@ -2250,8 +2246,7 @@ function addAllListeners() {
 		} else {
 			checkAll.checked = true;
 		}
-		let clickEvent = new Event('change');
-		checkAll.dispatchEvent(clickEvent);
+		checkAll.dispatchEvent(new Event('change'));
 	});
 	var copyAllNames = document.getElementById('copy-all-names');
 	copyAllNames.addEventListener('click', function(e) {
