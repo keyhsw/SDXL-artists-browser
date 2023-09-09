@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", function() {
 // functions
 async function startUp() {
 	updateTagsConcatenated();
-	updateFooter();
 	await loadEditedArtists();
 	insertArtists();
 	insertCheckboxesFromArtistsData();
@@ -205,17 +204,6 @@ function updateTagsConcatenated() {
 	tagsConcatenated = new Set(tagsConcatenatedArray);
 }
 
-function updateFooter() {
-	let proto = window.location.protocol;
-	if (proto.startsWith('http')) {
-		var footer = document.getElementsByTagName('footer')[0];
-		var el1 = document.createElement('span');
-		el1.textContent = '';
-		// footer.classList.add('special');
-		// footer.querySelectorAll('div')[0].prepend(el1);
-	}
-}
-
 async function loadEditedArtists() {
 	await loadItemBasedOnAccessType('editedArtists').then(state => {
 		editedArtists = new Set(Array.from(state));
@@ -311,6 +299,14 @@ function insertArtists() {
 		artEditSpan.textContent = '✍️';
 		artEdit.appendChild(artEditSpan);
 		imgTools.appendChild(artEdit);
+		var artSearch = document.createElement('a');
+		artSearch.className = 'art_search';
+		artSearch.href = 'https://www.bing.com/images/search?q=' + artist[1].replace(' ','+') + '+' + artist[0].replace(' ','+') + '+artwork';
+		artSearch.target = '_blank';
+		var artSearchSpan = document.createElement('span');
+		artSearchSpan.textContent = '🌐';
+		artSearch.appendChild(artSearchSpan);
+		imgTools.appendChild(artSearch);
 		box.appendChild(imgTools);
 		var imgBox = document.createElement('div');
 		imgBox.className = 'imgBox';
@@ -432,7 +428,6 @@ function insertCheckboxesFromArtistsData() {
 }
 
 function insertCheckboxesFromCategories() {
-	var useCategories = document.querySelector('input[name="use_categories"]').checked;
 	for(i=0,il=tagCategories.length;i<il;i++) {
 		let name = tagCategories[i][0];
 		var label = document.createElement('label');
@@ -682,12 +677,18 @@ function updateArtistsCountPerTagSlow() {
 }
 
 function updateArtistsCountPerCategory() {
-	var imageItems = document.querySelectorAll('.image-item');
+	let imageItems = document.querySelectorAll('.image-item');
+	let notDeprecatedItems = document.querySelectorAll('.image-item:not([data-deprecated="true"])');
+	let deprecatedCheckbox = document.querySelector('input[name="deprecated"]');
+	let countItems = imageItems;
+	if(deprecatedCheckbox.checked) {
+		countItems = notDeprecatedItems;
+	}
 	let counts = [];
 	for(i=0,il=tagCategories.length; i<il; i++) {
 		counts[i] = 0;
 	}
-	imageItems.forEach(function(imageItem) {
+	countItems.forEach(function(imageItem) {
 		let tagList = imageItem.dataset.tagList.split('|');
 		for(i=0,il=tagCategories.length; i<il; i++) {
 			if(tagCategories[i].map(tag => tag.toLowerCase()).some(tag => tagList.includes(tag))) {
@@ -697,7 +698,11 @@ function updateArtistsCountPerCategory() {
 	});
 	for(i=0,il=tagCategories.length; i<il; i++) {
 		let label = document.querySelector('[data-category-name="' + tagCategories[i][0] + '"]');
-		label.querySelector('.count').textContent = ' - ' + counts[i].toLocaleString();
+		if(tagCategories[i][0] == 'other') {
+			label.querySelector('.count').textContent = '';
+		} else {
+			label.querySelector('.count').textContent = ' - ' + counts[i].toLocaleString();
+		}
 	}
 }
 
@@ -762,6 +767,26 @@ function hideAllArtists() {
 	imageItems.forEach(function(imageItem) {
 		imageItem.classList.add('hidden');
 	});
+}
+
+function uncheckedAllStrictMode(isChecked) {
+	if(!isChecked) {
+		// for strict mode, only allow one checked tag, the first one found
+		let labels = Array.from(document.querySelectorAll('label'))
+			.filter(l => !l.classList.contains('top_control'))
+			.filter(l => !l.classList.contains('category'))
+			.filter(l => l.querySelector('input').checked == true);
+		if(document.querySelector('input[name="favorite"]').checked) {
+			labels.unshift(document.querySelector('input[name="favorite"]').parentNode);
+		}
+		if(labels.length > 0) {
+			document.querySelector('input[name="check-all"]').checked = false;
+			checkOrUncheckAll(false);
+			let checkbox = labels[0].querySelector('input');
+			checkbox.checked = true;
+			doAlert(checkbox.name + ' is checked',0);
+		}
+	}
 }
 
 function unhideBasedOnPermissiveSetting() {
@@ -865,20 +890,29 @@ function hideDeprecated() {
 }
 
 function checkOrUncheckAll(isChecked) {
-	var divs = document.querySelectorAll('.image-item');
-	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+	let divs = document.querySelectorAll('.image-item');
+	let checkboxes = document.querySelectorAll('input[type="checkbox"]');
+	let permissiveCheckbox = document.querySelector('input[name="mode"]');
+	let isPermissive = permissiveCheckbox.checked;
 	if(isChecked) {
-		checkboxes.forEach(function(checkbox) {
-			let label = checkbox.parentNode;
-			let isTop = label.classList.contains('top_control');
-			let isHidden = label.classList.contains('hidden');
-			if(!isTop || checkbox.name == 'favorite') {
-				if(!isHidden) {
-					// hidden label must not be checked
-					checkbox.checked = true;
-				}
-			};
-		});
+		if(isPermissive) {
+			checkboxes.forEach(function(checkbox) {
+				let label = checkbox.parentNode;
+				let isTop = label.classList.contains('top_control');
+				let isHidden = label.classList.contains('hidden');
+				if(!isTop || checkbox.name == 'favorite') {
+					if(!isHidden) {
+						// hidden/disabled label must not be checked
+						checkbox.checked = true;
+					}
+				};
+			});
+		} else {
+			// can't allow check-all for strict mode
+			// because the order of checking change the available checkmarks
+			document.querySelector('input[name="check-all"]').checked = false;
+			doAlert('Only works in permissive mode',0);
+		}
 	} else {
 		checkboxes.forEach(function(checkbox) {
 			let label = checkbox.parentNode;
@@ -902,16 +936,13 @@ function hideInfo() {
 }
 
 function showInformation(tab) {
-	let information = document.querySelectorAll('.information_section');
-	information.forEach(function(element) {
-		element.classList.remove('selected');
-	});
-	document.getElementById('information_' + tab).classList.add('selected');
-	let info = document.querySelectorAll('#info_switcher h2');
+	let info = document.querySelectorAll('#information .selected');
 	info.forEach(function(element) {
 		element.classList.remove('selected');
 	});
 	document.getElementById('info_' + tab).classList.add('selected');
+	document.getElementById('information_' + tab).classList.add('selected');
+	document.getElementById('information_' + tab).scrollTop = 0;
 	if (tab == 'actions') {
 		document.getElementById('info_search_input').focus();
 	} else if(tab == 'export') {
@@ -919,7 +950,7 @@ function showInformation(tab) {
 	}
 }
 
-function searchForTagsInfo() {
+function searchForTagsInfo(event) {
 	let input = document.getElementById('info_search_input');
 	if(input.dataset.match != '') {
 		event.preventDefault();
@@ -936,7 +967,7 @@ function searchForTagsInfo() {
 	let matches = 0;
 	let match = '';
 	let range = 'start'
-	let tags = document.querySelectorAll('#toggles label:not(.top_control):not(.category)');
+	let tags = document.querySelectorAll('#toggles label:not(.top_control):not(.category):not([data-is-in-category="other"]');
 	tags.forEach(function(tag) {
 		let tagName = tag.querySelector('input').name;
 		if(tagName.toLowerCase().indexOf(input.value.toLowerCase()) > -1) {
@@ -957,7 +988,11 @@ function searchForTagsInfo() {
 			return;
 		}
 	});
-	if(matches == 1) {
+	if(matches == 0) {
+		let noneFound = document.createElement('label');
+		noneFound.textContent = 'no matching tags';
+		output.appendChild(noneFound);
+	} else if(matches == 1) {
 		input.value = match;
 		event.preventDefault();
 		input.dataset.match = match;
@@ -989,20 +1024,57 @@ function toggleMatchingTag(searchLabel) {
 	let toggleLabels = document.getElementById('toggles').querySelectorAll('label');
 	let searchInput = searchLabel.querySelector('input');
 	let toggleMatch;
-	toggleLabels.forEach(function(label) {
-		let toggleInput = label.querySelector('input');
+	for(i=0,il=toggleLabels.length; i<il; i++) {
+		let toggleInput = toggleLabels[i].querySelector('input');
 		if(toggleInput.value == searchInput.value) {
-			toggleMatch = label;
-			return;
+			toggleMatch = toggleLabels[i];
+			break;
 		}
-	});
+	}
 	toggleMatch.querySelector('input').checked = searchInput.checked;
+	toggleMatch.classList.remove('hidden');
 	hideAllArtists();
 	unhideBasedOnPermissiveSetting();
 	storeCheckboxState(toggleMatch);
 	updateArtistsCountPerTag('click');
 	let input = document.getElementById('info_search_input');
 	input.focus();
+}
+
+function searchShowRandomTags() {
+	document.querySelector('input[name="check-all"]').checked = false;
+	checkOrUncheckAll(false);
+	hideAllArtists();
+	unhideBasedOnPermissiveSetting();
+	let output = document.getElementById('info_search_output');
+	output.innerHTML = '';
+	let tags = Array.from(document.querySelectorAll('#toggles label:not(.top_control):not(.category):not([data-is-in-category="other"])'));
+	tags.forEach(function(tag) {
+		tag.dataset.randomRank = Math.random();
+	});
+	tags.sort(function(a, b) {
+		var aValue = a.dataset.randomRank;
+		var bValue = b.dataset.randomRank;
+		return bValue - aValue;
+	});
+	let firstLabel;
+	for(i=0,il=6; i<il; i++) {
+		let label = tags[i].cloneNode(true);
+		label.addEventListener('change', function(e) {
+			toggleMatchingTag(this);
+		});
+		output.appendChild(label);
+		if(i==0) {
+			firstLabel = label;
+		}
+	}
+	// check-mark and toggle on the first random label
+	firstLabel.querySelector('input').checked = true;
+	toggleMatchingTag(firstLabel);
+	// cleanup
+	tags.forEach(function(tag) {
+		delete tag.dataset.randomRank;
+	});
 }
 
 function showExport() {
@@ -1036,13 +1108,18 @@ function showExport() {
 	// db
 	var textareaA = document.getElementById('export_artists_list');
 	value = '';
-	artistData = artistsData.sort(function(a, b) {
-		var aValue = a[0].toLowerCase();
-		var bValue = b[0].toLowerCase();
-		return aValue.localeCompare(bValue);
+	artistsData = artistsData.sort((a, b) => {
+		// compare by known to SDXL boolean
+		if (a[3] && !b[3]) return 1;
+		if (!a[3] && b[3]) return -1;
+		// compare by last name (ignoring case)
+		const lastNameComparison = a[0].toLowerCase().localeCompare(b[0].toLowerCase());
+		if (lastNameComparison !== 0) return lastNameComparison;
+		// compare by first name (ignoring case)
+		return a[1].toLowerCase().localeCompare(b[1].toLowerCase());
 	});
 	for(i=0,il=artistsData.length;i<il;i++) {
-		// output artists sorted by alpha and their tags sorted by alpha
+		// sort tags within artist by alpha
 		let artist = artistsData[i];
 		let tags = artist[2].split('|');
 		tags = tags.sort(function(a, b) {
@@ -1061,6 +1138,7 @@ function showExport() {
 			}
 		}
 		newTags.push(added);
+		// output updated artist
 		artist[2] = newTags.join('|');
 		value += '["'+artist[0]+'","'+artist[1]+'","'+artist[2]+'",'+artist[3]+'],\r\n';
 	}
@@ -1501,9 +1579,9 @@ function showAlert() {
 	alert.classList.add('show');
 	if(alert.classList.contains('left')) {
 		// shorter display time because it covers the enlarged image
-		timer = setTimeout(hideAlert, 750);
+		timer = setTimeout(hideAlert, 1000);
 	} else {
-		timer = setTimeout(hideAlert, 2000);
+		timer = setTimeout(hideAlert, 2500);
 	}
 }
 
@@ -1604,13 +1682,18 @@ function showHideLowCountTags() {
 	checkboxes.forEach(function(checkbox) {
 		if(hideLowCount) {
 			var classes = checkbox.parentNode.classList;
-			if(classes.contains('category') || classes.contains('no_matches') || classes.contains('top_control')) {
-				// skip hide
-			} else {
+			if(!classes.contains('category')
+				&& !classes.contains('no_matches')
+				&& !classes.contains('top_control')) {
 				let count = parseInt(checkbox.parentNode.querySelector('.count').textContent.replace(/,/g, '').trim().substring(2),10);
 				if(count <= lowCountThreshold) {
-					checkbox.checked = false;
-					checkbox.parentNode.classList.add('hidden');
+					if(checkbox.checked) {
+						checkbox.parentNode.dataset.hideDeferred = true;
+					} else {
+						if(!checkbox.parentNode.classList.contains('is_most_used')) {
+							checkbox.parentNode.classList.add('hidden');
+						}
+					}
 				}
 			}
 		} else {
@@ -1620,9 +1703,20 @@ function showHideLowCountTags() {
 	showHideCategories();
 }
 
+function hideLowCountSingle(checkbox) {
+	let hideLowCount = document.querySelector('input[name="low_count"]').checked;
+	let hideDeferred = checkbox.parentNode.dataset.hideDeferred;
+	if(hideLowCount && hideDeferred) {
+		// only present if the tag is below the hide threshhold but not hidden because the checkbox was checked
+		checkbox.parentNode.classList.add('hidden');
+		checkbox.parentNode.dataset.hideDeferred = false;
+		doAlert('low-use tag hidden',0);
+	}
+}
+
 function loadLargerImages(imageItem) {
 	let images = imageItem.querySelectorAll('img');
-	let missingFiles = '';
+	let missingFiles = 'some image file(s) are missing!\n';
 	let imagePromises = Array.from(images).map((img) => {
 		if(img.src.indexOf('_thumbs') > -1 && img.dataset.thumbSrc == undefined) {
 			// don't try to load if we tried before
@@ -1636,7 +1730,7 @@ function loadLargerImages(imageItem) {
 					img.onerror = () => {
 						if(img.dataset.missingFiles == undefined) {
 							img.dataset.missingFiles = true;
-							missingFiles += '<li>' + img.src + '</li>';
+							missingFiles += img.src + '\n';
 							img.src = img.dataset.thumbSrc;
 						}
 						reject();
@@ -1659,11 +1753,10 @@ function loadLargerImages(imageItem) {
 			}
 		}
 	});
-	let report = document.getElementById('missing_images_report');
 	if(imagePromises.length > 0) {
 		Promise.allSettled(imagePromises).then(() => {
 			if(missingFiles.indexOf('webp')>0) {
-				report.innerHTML += missingFiles;
+				console.warn(missingFiles);
 			}
 		});
 	}
@@ -1906,12 +1999,13 @@ function searchForTags(input, event, tagList) {
 	let matches = 0;
 	let match = '';
 	let range = 'start'
-	tagsConcatenated.forEach(function(tag) {
+	for(i=0,il=tags.length; i<il; i++) {
+		let tag = tags[i];
 		for (var i=0, il=tagList.length; i<il; i++) {
 			if(typeof tagList[i] == 'string') {
 				// first tagList item is boolean
 				if(tag.toLowerCase() == tagList[i].toLowerCase()) {
-					return;
+					break;
 				}
 			}
 		}
@@ -1931,9 +2025,10 @@ function searchForTags(input, event, tagList) {
 			}
 		}
 		if(range == 'stop') {
-			return;
+			break;
 		}
-	});
+	}
+
 	if(matches == 1) {
 		input.value = match;
 		event.preventDefault();
@@ -2040,6 +2135,7 @@ function addAllListeners() {
 	});
 	document.querySelector('body').addEventListener('click', function(e) {
 		if(informationMode) {
+			e.preventDefault();
 			if(!e.target.closest('#information')) {
 				hideInfo();
 			}
@@ -2057,6 +2153,7 @@ function addAllListeners() {
 				unhideBasedOnPermissiveSetting();
 				storeCheckboxState(e.target);
 				updateArtistsCountPerTag('click');
+				hideLowCountSingle(e.target);
 			});
 		} else {
 			// top checkboxes
@@ -2070,6 +2167,7 @@ function addAllListeners() {
 				});
 			} else if(checkbox.name == 'mode') {
 				checkbox.addEventListener('change', function(e) {
+					uncheckedAllStrictMode(this.checked);
 					hideAllArtists();
 					unhideBasedOnPermissiveSetting();
 					updateArtistsCountPerTag('click');
@@ -2105,6 +2203,10 @@ function addAllListeners() {
 	info_help.addEventListener('click', function(e) {
 		showInformation('help');
 	});
+	var info_tips = document.getElementById('info_tips');
+	info_tips.addEventListener('click', function(e) {
+		showInformation('tips');
+	});
 	var info_about = document.getElementById('info_about');
 	info_about.addEventListener('click', function(e) {
 		showInformation('about');
@@ -2124,6 +2226,10 @@ function addAllListeners() {
 	var copyAllNames = document.getElementById('copy-all-names');
 	copyAllNames.addEventListener('click', function(e) {
 		copyStuffToClipboard(this, 'copyAllNames')
+	});
+	var randomTags = document.getElementById('random-tags');
+	randomTags.addEventListener('click', function(e) {
+		searchShowRandomTags();
 	});
 	var export_favorites = document.getElementById('export_favorites_button');
 	export_favorites.addEventListener('click', function(e) {
@@ -2260,9 +2366,4 @@ function addAllListeners() {
 			gutter.removeEventListener('mousemove', movePartition, false);
 		}, false);
 	}, false);
-	// footer
-	var closeFooter = document.getElementById('close_footer');
-	closeFooter.addEventListener('click', function(e) {
-		document.getElementById('layout').classList.add('footerHidden');
-	});
 }
