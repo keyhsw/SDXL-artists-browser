@@ -1012,7 +1012,7 @@ input[type="checkbox"]:checked::before {
 	color: #ffe300;
 	opacity: 0.8;
 	cursor: pointer;
-	margin: 5px 0 0 21px;
+	margin: 2px 0 10px 27px;
 }
 
 #edit_most_used:hover {
@@ -1068,4 +1068,8 @@ input[type="checkbox"]:checked::before {
 
 #layout.edit_mode #toggles .most_used_indicator {
 	visibility: visible;
+}
+
+#layout.edit_mode #favorite_label {
+	cursor: default;
 }

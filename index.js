@@ -45,9 +45,9 @@ async function startUp() {
 	unhideBasedOnPermissiveSetting();
 	updateArtistsCountPerTag('start');
 	rotatePromptsImages();
+	await loadMostUsedTags();
 	sortArtists();
 	sortTags();
-	await loadMostUsedTags();
 	updateArtistsCountPerCategory();
 	showHideLowCountTags();
 	makeStyleRuleForDrag();
@@ -401,6 +401,8 @@ function insertCheckboxesFromArtistsData() {
 			uniqueTags.add(tag.toLowerCase());
 		});
 	});
+	// favorite isn't an artist tag so has to be added
+	uniqueTags.add('favorite');
 	var uTags = Array.from(uniqueTags);
 	var toggles = document.getElementById('toggles');
 	for(i=0,il=uTags.length;i<il;i++) {
@@ -426,6 +428,8 @@ function insertCheckboxesFromArtistsData() {
 			toggles.appendChild(label);
 		}
 	}
+	// so it can be referenced by CSS
+	document.querySelector('input[name="favorite"').parentNode.id = "favorite_label";
 }
 
 function insertCheckboxesFromCategories() {
@@ -454,9 +458,10 @@ async function loadCheckboxesState() {
 	await loadItemBasedOnAccessType('tagsChecked').then(state => {
 		let allChecked = true;
 		for (let name in state) {
-			if (document.querySelector('input[name="'+name+'"]')) {
-				document.querySelector('input[name="'+name+'"]').checked = state[name];
-				styleLabelToCheckbox(document.querySelector('input[name="'+name+'"]'));
+			let checkbox = document.querySelector('input[name="'+name+'"]');
+			if (checkbox) {
+				checkbox.checked = state[name];
+				styleLabelToCheckbox(checkbox);
 				if(name != 'mode' && name != 'use_categories') {
 					if(!state[name]) {
 						allChecked = false;
@@ -645,33 +650,36 @@ function updateArtistsCountPerTagSlow() {
 	let deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
 	let last = performance.now();
 	checkboxes.forEach(function(checkbox) {
-		let isTop = checkbox.parentNode.classList.contains('top_control');
-		if(!isTop) {
-			let matchingDivs;
-			if(isPermissive) {
-				matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]');
-			} else {
-				// for strict mode, for each checkbox, only count artists with a tags matching all checked checkboxes
-				matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]:not(.hidden)');
-			}
-			let filteredDivs = Array.from(matchingDivs).filter(mat => {
-				// only includes the artists known to SD
-				return !Array.from(deprecatedDivs).some(dep => dep === mat);
-			});
-			let count = 0;
-			if(deprecatedCheckbox.checked) {
-				count = filteredDivs.length;
-			} else {
-				count = matchingDivs.length;
-			}
-			if(!count) { count = 0; }
-			checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
-			checkbox.parentNode.classList.remove('no_matches');
-			checkbox.parentNode.querySelector('input').disabled = false;
-			if(!isPermissive) {
-				if(count == 0) {
-					checkbox.parentNode.classList.add('no_matches');
-					checkbox.parentNode.querySelector('input').disabled = true;
+		// 'favorite' count is updated elsewhere
+		if(checkbox.name != 'favorite') {
+			// top controls aren't tags and don't have counts
+			if(!checkbox.parentNode.classList.contains('top_control')) {
+				let matchingDivs;
+				if(isPermissive) {
+					matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]');
+				} else {
+					// for strict mode, for each checkbox, only count artists with a tags matching all checked checkboxes
+					matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]:not(.hidden)');
+				}
+				let filteredDivs = Array.from(matchingDivs).filter(mat => {
+					// only includes the artists known to SD
+					return !Array.from(deprecatedDivs).some(dep => dep === mat);
+				});
+				let count = 0;
+				if(deprecatedCheckbox.checked) {
+					count = filteredDivs.length;
+				} else {
+					count = matchingDivs.length;
+				}
+				if(!count) { count = 0; }
+				checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
+				checkbox.parentNode.classList.remove('no_matches');
+				checkbox.parentNode.querySelector('input').disabled = false;
+				if(!isPermissive) {
+					if(count == 0) {
+						checkbox.parentNode.classList.add('no_matches');
+						checkbox.parentNode.querySelector('input').disabled = true;
+					}
 				}
 			}
 		}
@@ -696,9 +704,15 @@ function updateArtistsCountPerCategory() {
 	}
 	countItems.forEach(function(imageItem) {
 		let tagList = imageItem.dataset.tagList.split('|');
+		let isFavorited = imageItem.classList.contains('favorite');
 		for(i=0,il=tagCategories.length; i<il; i++) {
 			if(tagCategories[i].map(tag => tag.toLowerCase()).some(tag => tagList.includes(tag))) {
 				counts[i]++;
+			}
+			if(tagCategories[i][0] == 'important') {
+				if(isFavorited) {
+					counts[i]++;
+				}
 			}
 		}
 	});
@@ -1239,6 +1253,17 @@ function sortTagsByAlpha() {
 			let isTop = label.classList.contains('top_control');
 			if(!isTop) {
 				// appendChild will move the element to the end of the container
+				// "favorite" tag always stays at top
+				if(label.querySelector('input').name != 'favorite') {
+					container.appendChild(label);
+				}
+			}
+		});
+		// "added" tags always goes to bottom
+		labels.forEach(function(label) {
+			let name = label.querySelector('input').name;
+			if(name.indexOf('added-') > -1) {
+				// appendChild will move the element to the end of the container
 				container.appendChild(label);
 			}
 		});
@@ -1262,7 +1287,7 @@ function sortTagsByAlpha() {
 			arrayOfTagsLower.sort();
 			arrayOfTagsLower.forEach(tag => {
 				let label = labelMap[tag];
-				if (label) {
+				if(label) {
 					let isTop = label.classList.contains('top_control');
 					if(!isTop) {
 						label.dataset.isInCategory = categoryLabel.dataset.categoryName;
@@ -1287,6 +1312,10 @@ function sortTagsByAlpha() {
 				container.appendChild(label);
 			}
 		});
+		// favorite always goes to top of important category
+		let importantCategory = document.querySelector('label[data-category-name="important"]');
+		let favoriteLabel = document.getElementById('favorite_label');
+		importantCategory.after(favoriteLabel);
 	}
 }
 
@@ -1303,6 +1332,17 @@ function sortTagsByCount() {
 		labels.forEach(function(label) {
 			let isTop = label.classList.contains('top_control');
 			if(!isTop) {
+				// appendChild will move the element to the end of the container
+				// "favorite" tag always stays at top
+				if(label.querySelector('input').name != 'favorite') {
+					container.appendChild(label);
+				}
+			}
+		});
+		// "added" tags always goes to bottom
+		labels.forEach(function(label) {
+			let name = label.querySelector('input').name;
+			if(name.indexOf('added-') > -1) {
 				// appendChild will move the element to the end of the container
 				container.appendChild(label);
 			}
@@ -1377,14 +1417,19 @@ function sortTagsByCount() {
 				container.appendChild(label);
 			}
 		});
+		// favorite always goes to top of important category
+		let importantCategory = document.querySelector('label[data-category-name="important"]');
+		let favoriteLabel = document.getElementById('favorite_label');
+		importantCategory.after(favoriteLabel);
 	}
 }
 
 async function loadMostUsedTags() {
+	// aka the important category
 	await loadItemBasedOnAccessType('mustUsedTags').then(state => {
 		let mostUsedCategory = document.querySelector('[data-category-name="important"]');
 		for(let tag in state) {
-			if (state[tag]) {
+			if(state[tag]) {
 				let label = document.querySelector('input[name="'+ tag +'"]');
 				if(label) {
 					label = label.parentNode;
@@ -1395,6 +1440,11 @@ async function loadMostUsedTags() {
 				}
 			}
 		}
+		// favorite is always most used
+		let favoriteLabel = document.getElementById('favorite_label');
+		favoriteLabel.classList.add('is_most_used');
+		favoriteLabel.querySelectorAll('.most_used_indicator')[0].textContent = '';
+		updateTagArrayToMatchMostUsed(true,favoriteLabel,'favorite');
 	});
 }
 
@@ -1439,7 +1489,7 @@ function enterExitEditMostUsedMode(doExit) {
 		if(editMostUsedMode || doExit) {
 			// exit edit mode
 			editMostUsedMode = false;
-			document.getElementById('edit_most_used').textContent = 'edit';
+			document.getElementById('edit_most_used').textContent = 'edit these';
 			document.getElementById('layout').classList.remove('edit_mode');
 			inputs.forEach(function(input) {
 				input.disabled = false;
@@ -1448,11 +1498,12 @@ function enterExitEditMostUsedMode(doExit) {
 			labels.forEach(function(label) {
 				// clean up classes added to track moved tags during edit mode
 				label.classList.remove('was_moved');
-			})
+			});
 			document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
 			document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
 			document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
 			updateArtistsCountPerCategory();
+			sortTags();
 		} else {
 			// enter edit mode
 			editMostUsedMode = true;
@@ -1568,7 +1619,7 @@ function storeFavoriteState(artist) {
 function updateFavoritesCount() {
 	var favoritedArtists = document.getElementsByClassName('favorite');
 	var favoriteCount = favoritedArtists.length;
-	var favoriteCounter = document.querySelectorAll('input[name="favorite"]')[0].parentNode.querySelector('.count');
+	var favoriteCounter = document.getElementById('favorite_label').querySelector('.count');
 	favoriteCounter.textContent = ' - ' + favoriteCount;
 }
 
@@ -2338,12 +2389,16 @@ function addAllListeners() {
 	});
 	var labels = document.querySelectorAll('label');
 	Array.from(labels).forEach(function(label) {
-		label.addEventListener('click', function(e) {
-			if(editMostUsedMode) {
-				addRemoveIsMostUsed(this);
-				storeMostUsedState(this);
-			}
-		});
+		let name = label.querySelector('input').name;
+		if(name != 'favorite') {
+			// favorite can't be removed from most used
+			label.addEventListener('click', function(e) {
+				if(editMostUsedMode) {
+					addRemoveIsMostUsed(this);
+					storeMostUsedState(this);
+				}
+			});
+		}
 	});
 	// artists
 	var imageItems = document.getElementsByClassName('image-item');
