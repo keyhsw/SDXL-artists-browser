@@ -630,8 +630,9 @@ function updateArtistsCountPerTag(whoCalled) {
 	}
 	timer = setTimeout(function() {
 		// for checkbox, we defer counts because it's slow
+		// delay for 100 to allow CSS animation to complete
 		updateArtistsCountPerTagSlow();
-	},0);
+	},100);
 }
 
 function updateArtistsCountPerTagSlow() {
@@ -642,6 +643,7 @@ function updateArtistsCountPerTagSlow() {
 	let divs = document.querySelectorAll('.image-item');
 	let hiddenDivs = document.querySelectorAll('.image-item.hidden');
 	let deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
+	let last = performance.now();
 	checkboxes.forEach(function(checkbox) {
 		let isTop = checkbox.parentNode.classList.contains('top_control');
 		if(!isTop) {
@@ -1954,7 +1956,7 @@ function editTagsExitEditMode(imageItem) {
 	let tagLabels = tagArea.querySelectorAll('label');
 	tagLabels.forEach(function(label) {
 		let input = label.querySelector('input');
-		if(input.checked) {
+		if(input.checked && input.value != 'known' && input.value != 'unknown') {
 			tagList += input.value + ', ';
 			label.remove();
 		}
@@ -2014,9 +2016,10 @@ function searchForTags(input, event, tagList) {
 	let matches = 0;
 	let match = '';
 	let range = 'start'
-	for(i=0,il=tagsConcatenated.length; i<il; i++) {
-		let tag = tagsConcatenated[i];
-		for (var i=0, il=tagList.length; i<il; i++) {
+	let tagsConcatenatedArray = Array.from(tagsConcatenated);
+	for(i=0,il=tagsConcatenatedArray.length; i<il; i++) {
+		let tag = tagsConcatenatedArray[i];
+		for (var j=0, jl=tagList.length; j<jl; j++) {
 			if(typeof tagList[i] == 'string') {
 				// first tagList item is boolean
 				if(tag.toLowerCase() == tagList[i].toLowerCase()) {
@@ -2024,7 +2027,7 @@ function searchForTags(input, event, tagList) {
 				}
 			}
 		}
-		if(tag.toLowerCase().indexOf(input.value.toLowerCase()) == 0) {
+		if(tag.toLowerCase().indexOf(input.value.toLowerCase()) > -1) {
 			range = 'continue';
 			let matchSpan = document.createElement('span');
 			matchSpan.textContent = tag;
@@ -2210,6 +2213,12 @@ function addAllListeners() {
 		});
 	});
 	// information
+	var options_info = document.getElementById('options_info');
+	options_info.addEventListener('click', function(e) {
+		showInfo();
+		showInformation('actions');
+		e.stopPropagation();
+	});
 	var info_actions = document.getElementById('info_actions');
 	info_actions.addEventListener('click', function(e) {
 		showInformation('actions');
