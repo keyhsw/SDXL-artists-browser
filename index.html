@@ -94,12 +94,71 @@
 				-->
 			</div>
 		</div>
+		<div id="prompt_builder">
+			<div id="prompt_artist_search"></div>
+			<div id="prompt_selector">
+				<div>
+					<div id="prompt_builder_title">build-a-prompt:</div>
+					<div class="prompt_artist">
+						<div class="prompt_artist_count">
+							<div>1</div>
+						</div>
+						<div class="prompt_artist_name">
+							<input type="text" value="" placeholder="search by name" autocomplete="off" required pattern=".+" title="you can also click an artist name to add them here" />
+						</div>
+						<div class="prompt_artist_intensity" title="the weight of this artist">
+							<select autocomplete="off">
+								<option value="1">✖ 1</option>
+								<option value="2">✖ 2</option>
+								<option value="3">✖ 3</option>
+							</select>
+						</div>
+						<div class="prompt_artist_combine" title="the method of combining, type / for more info">
+							<select autocomplete="off">
+								<option value="add">add</option>
+								<option value="loop">loop</option>
+								<option value="swap">swap</option>
+							</select>
+						</div>
+						<div class="prompt_artist_left" title="move an artist left to give them more weight">
+							<div><</div>
+						</div>
+						<div class="prompt_artist_right" title="move an artist right to give them less weight">
+							<div>></div>
+						</div>
+						<div class="prompt_artist_remove" title="remove this artist from the prompt">
+							<span>X</span>
+						</div>
+					</div>
+					<div id="prompt_artist_add">
+						<div>
+							<span>add another</span>
+						</div>
+					</div>
+				</div>
+				<div id="prompt_builder_hide"></div>
+			</div>
+			<div id="prompt_result">
+				<div>
+					<span>
+						<b>(</b>artwork in the style of <i>[</i>name<i>|</i>name<i>]</i><b>:1.5)</b>,
+					</span>
+					<span>
+						<b>(</b>an image<b>:0.5)</b>,
+					</span>
+					<span>
+						<b>(</b><span id="prompt_result_editable" contenteditable="true"></span><b>:1.0)</b>
+					</span>
+				</div>
+				<div id="prompt_result_copy">copy this prompt</div>
+			</div>
+		</div>
 	</div>
 	<div id="information">
 		<div id="info_switcher">
 			<h2 id="info_actions" class="selected">🔍&nbsp;&nbsp;&nbsp;actions</h2>
 			<h2 id="info_help">📓&nbsp;&nbsp;&nbsp;manual</h2>
-			<h2 id="info_tips">📸&nbsp;&nbsp;&nbsp;tips</h2>
+			<h2 id="info_tips">📸&nbsp;&nbsp;&nbsp;prompts</h2>
 			<h2 id="info_about">💫&nbsp;&nbsp;&nbsp;about</h2>
 			<h2 id="info_export">📤&nbsp;&nbsp;&nbsp;export</h2>
 			<h2 id="info_closer">ESC</h2>
@@ -110,7 +169,7 @@
 				<div id="random-tags">see some random tags</div>
 				<div id="copy-all-names">copy visible artist names</div>
 			</div>
-			<input type="text" id="info_search_input" name="info_search_input" value="" data-match="" placeholder="search for tags" autocomplete="off">
+			<input type="text" id="info_search_input" name="info_search_input" value="" placeholder="search for tags" autocomplete="off">
 			<div id="info_search_output"></div>
 		</div>
 		<div id="information_help" class="information_section">
@@ -143,35 +202,54 @@
 				<ul>
 					<li>Click <strong>edit</strong> under the important category to add or remove tags</li>
 				</ul>
+				<h3>Why does the 🎨 prompt sometimes match the 🧑 or 🏞️ prompt?</h3>
+				<ul>
+					<li>
+						The prompt used for the 🎨 images is the intentionally generic, "an image".  If that results in a portrait, that's useful to know.  It indicates that, for that artist, SDXL is more strongly trained to output portraits.  Anything in your prompt that's not related to a person will harder to prompt for in that artist's style.
+					</li>
+				</ul>
 				<h3>✍️ Offline tag-editing</h3>
 				<ul>
 					<li>If you are viewing this from Hugging Face, your tag edits won't be applied.  They'll be saved and applied if you've downloaded the repository and are viewing your local file.  In both cases, your edits will be available for export 📥 as text.  If you want to suggest tag improvements for everyone's benefit, edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
+				</ul>
+				<h3>Build a prompt</h3>
+				<ul>
+					<li>See 📸 prompts</li>
 				</ul>
 			</div>
 		</div>
 		<div id="information_tips" class="information_section">
 			<div>
-				<h3>Prompting artist styles with SDXL</h3>
+				<h3>Building prompts from artist styles</h3>
 				<ul>
-					<li>I recommend this 3-section prompt (auto1111 syntax):
+					<li>Build-a-prompt uses auto1111 syntax, and it creates a 3-section prompt:</li>
+					<li><b>(</b><i>artist stuff</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b><i>your prompt words</i><b>:1.0)</b></li>
+					<li>Options:
 						<ul>
-							<li><b>(</b><i>style stuff</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b><i>content stuff</i><b>:1.0)</b></li>
-						</ul>
-					</li>
-					<li>For example:
-						<ul>
-							<li>safest bet, needed for photographers:</li>
-							<li><b>(</b>by <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>a landscape, water under a bridge<b>:1.0)</b></li>
-							<li>stronger style, not for photographers:</li>
-							<li><b>(</b>artwork in the style of <i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>a landscape, water under a bridge<b>:1.0)</b></li>
+							<li><strong>Intensity:</strong>
+								<ul>
+									<li>i.e. ✖1, ✖2, ✖3, gives more weight to a style by repeating the artist's name.  This works better than using prompt weighting</li>
+								</ul>
+							</li>
+							<li><strong>Mixing method:</strong>
+								<ul>
+									<li><strong>Add:</strong> puts all the artists' names in the prompt separated by a comma.  Usually the best choice.  Try 'add' and 'loop' and see which works better.</li>
+									<li><strong>Loop:</strong> uses a1111 syntax for alternating the prompt at each step.  This alternates which artist's name appears in the prompt.  If an artist's name is repeated, then it's repeat for multiple steps.</li>
+									<li><strong>Swap:</strong> uses a1111 syntax to swap the prompt after a fraction of the total steps.  This swaps the artist's name after 50% of steps by default.  You can change this fraction.  For example, <b>[</b>A<b>:</b>B<b>:</b>0.1<b>]</b> switches to B after 10% of all steps.</li>
+								</ul>
+							<li><strong>Move left and right:</strong>
+								<ul>
+									<li>tokens closest to the start of the prompt always have more influence.  Therefore, moving an artist's name to the left adds weight to that style.</li>
+								</ul>
+							</li>
 						</ul>
 					</li>
 				</ul>
-				<h3>Explanation of the 3-section prompt</h3>
+				<h3>Why this prompting method?</h3>
 				<ul>
-					<li>The reason for this 3-section prompt is that it's very easy for common words to erase the style.  For example, for some artists that never made portraits, using the word "portrait" in your prompt can erase their style, making the image style generic.</li>
-					<li>To overcome this, we add weight to the <i>style stuff</i> and to remove weight from the <i>content stuff</i>.  I recommend starting with 1.5 and 1.0 respectively, which gives slightly more weight to the style.  As you edit the <i>content stuff</i>, if the style disappears, try other weights, e.g 2.0 and 0.5.</li>
-					<li>The part in the middle "<b>(</b>an image<b>:0.5)</b>" doesn't change the output, but it's sometimes needed when the <i>content stuff</i> weight is less than 1.0.  You can try removing it, and if your output looks garbled, try putting it back in.</li>
+					<li>The reason why build-a-prompt uses 3-sections is that it's very easy for common words in a prompt to erase an artist's style.  For example, for some artists that never made any portraits, using the word "portrait" in your prompt can erase their style entirely.</li>
+					<li>To overcome this, we add weight to the <i>artist stuff</i> and to remove weight from the <i>rest of the prompt</i>.  Built a prompt weights this at <b>1.5</b> and <b>1.0</b> respectively.  This gives slightly more weight to the <i>artist stuff</i>.  As you edit the <i>rest of the promt</i>, if the style disappears, adjust both numbers, e.g. try <b>2.0</b> and <b>0.5</b>.</li>
+					<li>The middle section, "<b>(</b>an image<b>:0.5)</b>" doesn't change the output at all.  However, it's sometimes needed when the weight of the <i>rest of the prompt</i> weight is less than 1.</li>
 				</ul>
 				<h3>An artist's style includes much more than their medium</h3>
 				<ul>
@@ -185,31 +263,12 @@
 					<li>This helps especially when the artist is famous for multiple mediums.  But sometimes it reduces the artist's specific style and more matches the generic style of the medium.</li>
 					<li>Also try adding the <strong>opposite</strong> medium/style to the <strong>negative</strong> prompt.  For example, if the artist you want is a photographer, try "painting, illustration" in the negative prompt.</li>
 				</ul>
-				<h3>Combining the styles of multiple artists</h3>
-				<ul>
-					<li>I recommend either of these patterns (auto1111 syntax):
-						<ul>
-							<li><b>(</b>by <i>artist A</i>, by <i>artist B</i><b>:2.0)</b>, <i>the rest of the prompt</i></li>
-							<li><b>(</b>by <b>[</b><i>artist A</i><b>|</b><i>artist B</i><b>]</b><b>:2.0)</b>, <i>the rest of the prompt</i></li>
-							<li>Which is best depends on the artists.  Try both!</li>
-						</ul>
-					</li>
-					<li>To make one of the artists styles more dominant, make it first in the prompt.  If it's still not strong enough repeat the artist's name.  For example:<br>
-					<b>[</b><i>artist A</i><b>|</b><i>artist A</i><b>|</b><i>artist B</i><b>]</b></li>
-					<li>I've found that adding weight to one of the artists doesn't work, but your mileage may vary.
-				</ul>
 				<h3>Making non-photographic mediums look more photographic</h3>
 				<ul>
-					<li>It's worth trying "photograph by <i>illustration artist</i>" along with "illustration" in the negative prompt.  But that often won't work.
+					<li>It's worth trying "photograph by <i>illustration artist</i>" along with "illustration" in the negative prompt.  But that often won't work.</li>
 					<li>It's also worth trying "<b>[</b><i>by artist A</i><b>:</b><i>style of photograph</i><b>:0.5]</b>".  This will start with the artist style and switch to photograph style after 50% of the steps.  Adjust the decimal as needed.</li>
 					<li>I've had best results by sending the output to img2img, then replacing the artist's name in the prompt with "photograph", and setting the de-noise very low.  Then feed the result back to img2img, and slowly nudge it towards photographic.  That will at least maintain the composition.</li>
 					<li>If Reference Controlnet for SDXL has been released, that should work well.</li>
-				</ul>
-				<h3>Why does the 🎨 prompt sometimes match the 🧑 or 🏞️ prompt?</h3>
-				<ul>
-					<li>
-						The prompt used for the 🎨 images is the intentionally generic, "an image".  If that results in a portrait, that's useful to know.  It indicates that, for that artist, SDXL is more strongly trained to output portraits.  Anything in your prompt that's not related to a person will harder to prompt for in that artist's style.
-					</li>
 				</ul>
 			</div>
 		</div>

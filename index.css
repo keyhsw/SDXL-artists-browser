@@ -23,6 +23,7 @@ h4 {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+	overflow: hidden;
 }
 
 #rows {
@@ -37,14 +38,14 @@ h4 {
 	top: 0;
 	left: 0;
 	width: calc(40% + 20px);
-	height: 100%;
+	height: calc(100% - 55px);
 	display: flex;
 	flex-direction: column;
 	flex-wrap: wrap;
 	opacity: 1;
 	line-height: 140%;
 	box-sizing: border-box;
-	padding: 20px;
+	padding: 20px 20px 60px 20px;
 	overflow: auto;
 	transition: opacity 50ms 100ms linear;
 }
@@ -272,10 +273,11 @@ label.no_matches {
 }
 
 label.category {
+	height: initial;
 	color: #00d5c0;
 	font-weight: bold;
 	padding-bottom: 5px;
-	margin: 10px 40px 0 0;
+	margin: 10px 40px 5px 0;
 	border-bottom: 1px solid #333;
 	opacity: 1;
 }
@@ -576,12 +578,11 @@ input[type="checkbox"]:checked::before {
 	color: #ffe300;
 	font-size: 12px;
 	font-weight: bold;
-	transition: opacity 100ms 200ms linear;
 }
 
 .information_section .buttons div:hover {
 	opacity: 1;
-	transition: opacity 100ms 0ms linear;
+	transition: opacity 100ms linear;
 }
 
 #info_search_input {
@@ -1021,6 +1022,378 @@ input[type="checkbox"]:checked::before {
 
 #edit_most_used.hidden {
 	display: none;
+}
+
+#prompt_builder {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	position: relative;
+	z-index: 2;
+	height: 54px;
+	padding: 10px;
+	border-top: 1px solid #333;
+	box-sizing: border-box;
+	background-color: #000;
+	transition: height 100ms 0ms ease-out;
+}
+
+#prompt_builder.show {
+	height: 97px;
+	transition: height 200ms 200ms ease-out;
+}
+
+#prompt_selector {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	cursor: pointer;
+}
+
+#prompt_selector > div {
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+	align-items: center;
+	flex-grow: 1;
+	font-size: 12px;
+	overflow: scroll;
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+}
+
+#prompt_selector div::-webkit-scrollbar {
+	display: none; /* Chrome, Safari and Opera */
+}
+
+#prompt_builder_title {
+	padding-left: 9px;
+	color: #777;
+	white-space: nowrap;
+	cursor: default;
+}
+
+.prompt_artist {
+	display: flex;
+	gap: 5px;
+	align-items: center;
+	flex-direction: row;
+	padding: 5px 5px;
+	border-radius: 50px;
+	border: 1px solid #333;
+	background-color: #222;
+}
+
+.prompt_artist_count {
+	width: 20px;
+	text-align: center;
+	border-radius: 50px;
+	white-space: nowrap;
+	color: #ffe300;
+	font-weight: bold;
+	cursor: default;
+}
+
+.prompt_artist_left,
+.prompt_artist_right,
+.prompt_artist_remove {
+	padding: 0px 6px;
+	opacity: 0.8;
+	border: 1px solid rgba(0, 255, 230, 0.5);
+	border-radius: 50px;
+	cursor: pointer;
+	white-space: nowrap;
+	background-color: black;
+	color: #00ffe6;
+	font-weight: bold;
+}
+
+.prompt_artist_left:hover,
+.prompt_artist_right:hover,
+.prompt_artist_remove:hover {
+	opacity: 1;
+	transition: opacity 100ms linear;
+}
+
+#prompt_artist_add {
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+}
+#prompt_artist_add div {
+	padding: 0px 10px;
+	border: 2px solid rgba(0, 255, 230, 0.5);
+	border-radius: 50px;
+	color: #00ffe6;
+	white-space: nowrap;
+	opacity: 0.7;
+}
+#prompt_artist_add:hover div {
+	opacity: 1;
+}
+
+.prompt_artist_remove {
+	border-color: rgba(222, 0, 0, 0.5);
+	color: #f00;
+}
+
+.prompt_artist_remove span {
+	display: block;
+}
+
+.prompt_artist_intensity,
+.prompt_artist_combine {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	height: 21px;
+	position: relative;
+	border: 1px solid #00ffe6;
+	border-radius: 50px;
+	box-sizing: border-box;
+	padding: 0px 10px;
+	cursor: pointer;
+	background-color: rgba(0, 255, 230, 0.2);
+	opacity: 0.8;
+}
+
+.prompt_artist_intensity:hover,
+.prompt_artist_combine:hover {
+	opacity: 1;
+}
+
+.prompt_artist_intensity::after,
+.prompt_artist_combine::after {
+	content: '';
+	min-width: 10px;
+	height: 6px;
+	background-color: #00ffe6;
+	clip-path: polygon(5% 0, 95% 0, 100% 15%, 55% 100%, 45% 100%, 0 15%);
+	position: relative;
+	z-index: 0;
+	left: -15px;
+	margin-right: -15px;
+	/* the arrow isn't clickable, so we position it over the select */
+	/* and the selects' min-widths proves extra space for it */
+}
+
+.prompt_artist select {
+	appearance: none;
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	height: 21px;
+	margin: 0;
+	padding: 0 1px 0 0;
+	border: none;
+	outline: none;
+	background-color: transparent;
+	color: #00d5c0;
+	font-family: inherit;
+	font-size: inherit;
+	cursor: inherit;
+}
+
+.prompt_artist select::-ms-expand {
+	display: none;
+}
+
+.prompt_artist_intensity select {
+	min-width: 4ch;
+}
+
+.prompt_artist_combine select {
+	min-width: 7ch;
+}
+
+.prompt_artist input {
+	width: 150px;
+	height: 21px;
+	border: 1px solid #ffe300;
+	border-radius: 50px;
+	box-sizing: border-box;
+	padding: 0px 10px;
+	background-color: rgba(255, 227, 0, 0.2);
+	color: #ffe300;
+	font-family: inherit;
+	font-size: inherit;
+	opacity: 0.8;
+}
+
+.prompt_artist input:focus{
+	outline: none;
+	border-width: 2px;
+	opacity: 1;
+}
+
+.prompt_artist input:hover {
+	opacity: 1;
+}
+
+.prompt_artist input:valid {
+	border-color: #00ffe6;
+	background-color: #00ffe62e;
+	color: #00ffe6;
+}
+
+#prompt_artist_search {
+	display: none;
+	width: 180px;
+	max-height: 100px;
+	overflow-y: scroll;
+	position: absolute;
+	left: 0;
+	bottom: 91px;
+	border-radius: 10px;
+	border: 1px solid #333;
+	box-sizing: border-box;
+	padding: 10px;
+	background-color: #222;
+	box-shadow: 0 5px 10px #00000090;
+	font-size: 12px;
+	opacity: 0;
+	transition: left 200ms ease-out;
+}
+
+#prompt_artist_search.show {
+	display: block;
+	opacity: 1;
+}
+
+#prompt_artist_search div {
+	opacity: 0.5;
+	cursor: pointer;
+}
+
+#prompt_artist_search div:hover {
+	opacity: 0.8;
+}
+
+#prompt_builder #prompt_builder_hide {
+	visibility: hidden;
+	flex-grow: 0;
+	width: 33px;
+	height: 33px;
+	padding: 0 9px;
+	box-sizing: border-box;
+	cursor: pointer;
+	color: #00ffe6;
+	overflow: hidden;
+	box-shadow: -5px 0 5px #000000;
+	transition: visibility 0ms 500ms;
+}
+
+#prompt_builder #prompt_builder_hide::after {
+	content: '';
+	max-width: 14px;
+	height: 8px;
+	clip-path: polygon(5% 0, 95% 0, 100% 15%, 55% 100%, 45% 100%, 0 15%);
+	background-color: #00ffe6;
+	padding: 0 9px;
+}
+
+#prompt_builder.show #prompt_builder_hide {
+	visibility: visible;
+	opacity: 0.8;
+}
+
+#prompt_builder.show #prompt_builder_hide:hover {
+	opacity: 1;
+}
+
+#prompt_result {
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+	font-size: 12px;
+}
+
+#prompt_result > div {
+	display: flex;
+	position: relative;
+	flex-grow: 1;
+	align-items: center;
+	height: 33px;
+	max-width: calc(100% - 135px);
+	overflow-x: scroll;
+	padding: 0 5px;
+	border-radius: 50px;
+	box-sizing: border-box;
+	border: 1px solid #333;
+	background-color: #222;
+	color: rgb(160,160,160);
+	white-space: nowrap;
+	opacity: 1;
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+}
+
+#prompt_result div::-webkit-scrollbar {
+	display: none; /* Chrome, Safari and Opera */
+}
+
+#prompt_result > div::after {
+	content: 'press the / key for more info about this prompt';
+	opacity: 0;
+	display: block;
+	visibility: hidden;
+	position: absolute;
+	bottom: 5px;
+	right: 15px;
+	padding: 2px 10px;
+	border-radius: 50px;
+	background-color: #222;
+	box-shadow: 0 0 10px #222;
+	color: #777;
+}
+
+#prompt_result > div:first-child:hover::after {
+	visibility: visible;
+	opacity: 1;
+	transition: opacity 50ms 1000ms linear;
+}
+
+#prompt_result b {
+	font-style: normal;
+	font-weight: bold;
+	color: #00ffe6;
+	margin: 0 4px;
+}
+
+#prompt_result i {
+	font-style: normal;
+	font-weight: bold;
+	color: #ffe300;
+	margin: 0 4px;
+}
+
+#prompt_result #prompt_result_editable {
+	font-style: normal;
+	font-weight: bold;
+	margin: 0 4px;
+}
+
+#prompt_result:hover #prompt_result_editable {
+	color: rgb(255,255,255);
+}
+
+#prompt_result #prompt_result_copy {
+	flex-grow: 0;
+	display: flex;
+	align-items: center;
+	padding: 0 8px;
+	border-radius: 4px;
+	cursor: pointer;
+	white-space: nowrap;
+	background-color: #ffe300;
+	color: #000;
+	font-weight: bold;
+	opacity: 0.8;
+}
+
+#prompt_result #prompt_result_copy:hover {
+	opacity: 1;
+	transition: opacity 100ms linear;
 }
 
 #layout.edit_mode #edit_most_used {

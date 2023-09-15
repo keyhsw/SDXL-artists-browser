@@ -17,6 +17,8 @@ var startUpTime;
 var tagsConcatenated = new Set();
 var editedArtists = new Set();
 var storingAccessType = 'none';
+// the longer prompt is better for non-photographers
+var promptStyleWords = ['artwork in the style of','by|||']
 var start = performance.now();
 const lowCountThreshold = 3;
 //
@@ -52,6 +54,8 @@ async function startUp() {
 	showHideLowCountTags();
 	makeStyleRuleForDrag();
 	teasePartition();
+	promptBuilderAddArtist(true);
+	updatePromptBuilderParts();
 	addAllListeners();
 }
 
@@ -982,52 +986,43 @@ function showInformation(tab) {
 
 function searchForTagsInfo(event) {
 	let input = document.getElementById('info_search_input');
-	if(input.dataset.match != '') {
+	if(input.dataset.match !== undefined) {
 		event.preventDefault();
 		if(event.key === 'Backspace' || event.keyCode === 8) {
 			input.value = '';
-			input.dataset.match = '';
+			delete input.dataset.match;
 		} else {
 			input.value = input.dataset.match;
 		}
-		return;
-	}
-	let output = document.getElementById('info_search_output');
-	output.innerHTML = '';
-	let matches = 0;
-	let match = '';
-	let range = 'start'
-	let tags = document.querySelectorAll('#toggles label:not(.top_control):not(.category):not([data-is-in-category="other"]');
-	tags.forEach(function(tag) {
-		let tagName = tag.querySelector('input').name;
-		if(tagName.toLowerCase().indexOf(input.value.toLowerCase()) > -1) {
-			range = 'continue';
-			let label = tag.cloneNode(true);
-			label.addEventListener('change', function(e) {
-				toggleMatchingTag(this);
-			});
-			output.appendChild(label);
-			match = tagName;
-			matches++;
-		} else {
-			if(range != 'start') {
-				range = 'stop';
-			}
-		}
-		if(range == 'stop') {
-			return;
-		}
-	});
-	if(matches == 0) {
-		let noneFound = document.createElement('label');
-		noneFound.textContent = 'no matching tags';
-		output.appendChild(noneFound);
-	} else if(matches == 1) {
-		input.value = match;
-		event.preventDefault();
-		input.dataset.match = match;
 	} else {
-		sortInfoSearchTags(output);
+		let matches = 0;
+		let output = document.getElementById('info_search_output');
+		output.innerHTML = '';
+		let match = '';
+		let tags = document.querySelectorAll('#toggles label:not(.top_control):not(.category):not([data-is-in-category="other"]');
+		tags.forEach(function(tag) {
+			let tagName = tag.querySelector('input').name;
+			if(tagName.toLowerCase().indexOf(input.value.toLowerCase()) > -1) {
+				let label = tag.cloneNode(true);
+				label.addEventListener('change', function(e) {
+					toggleMatchingTag(this);
+				});
+				output.appendChild(label);
+				match = tagName;
+				matches++;
+			}
+		});
+		if(matches == 0) {
+			let noneFound = document.createElement('label');
+			noneFound.textContent = 'no matching tags';
+			output.appendChild(noneFound);
+		} else if(matches == 1) {
+			input.value = match;
+			event.preventDefault();
+			input.dataset.match = match;
+		} else {
+//			sortInfoSearchTags(output);
+		}
 	}
 }
 
@@ -1499,7 +1494,7 @@ function enterExitEditMostUsedMode(doExit) {
 				// clean up classes added to track moved tags during edit mode
 				label.classList.remove('was_moved');
 			});
-			document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
+			document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% + 20px)';
 			document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
 			document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
 			updateArtistsCountPerCategory();
@@ -1699,6 +1694,17 @@ function copyStuffToClipboard(item,stuff) {
 		} else {
 			doAlert('No artists are visible!',1);
 		}
+	} else if(stuff == 'prompt') {
+		let prompt_result = document.getElementById('prompt_result').querySelector('div');
+		let prompt = prompt_result.innerText.trim();
+		prompt = prompt.replace(/(\r\n|\n|\r)/gm, '');
+		navigator.clipboard.writeText(prompt)
+			.then(() => {
+				doAlert('Copied prompt to clipboard!',1);
+			})
+			.catch(() => {
+				doAlert('😭😭 Can\'t access clipboard',1);
+			});
 	}
 }
 
@@ -1774,7 +1780,7 @@ function hideLowCountSingle(checkbox) {
 		// only present if the tag is below the hide threshhold but not hidden because the checkbox was checked
 		checkbox.parentNode.classList.add('hidden');
 		checkbox.parentNode.dataset.hideDeferred = false;
-		doAlert('low-use tag hidden',0);
+		doAlert('Low-use tag hidden',0);
 	}
 }
 
@@ -1869,7 +1875,7 @@ function movePartition(e) {
 		newPos = window.innerWidth - 350;
 	}
 	let gutterEndPercentX = (newPos / window.innerWidth) * 100;
-	document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% - 20px)';
+	document.getElementById('toggles').style.width = 'calc(' + gutterEndPercentX + '% + 20px)';
 	document.getElementById('gutter').style.left =  gutterEndPercentX + '%';
 	document.getElementById('image-container').style.marginLeft = 'calc(' + gutterEndPercentX + '% + 50px)';
 	imgHoverRule.style.width = gutterEndPercentX + '%';
@@ -2185,6 +2191,409 @@ function deleteAllEdits() {
 	}
 }
 
+function promptBuilderAddArtist(isStart) {
+	let ogPart = document.querySelector('.prompt_artist');
+	let part = ogPart.cloneNode(true);
+	document.querySelector('#prompt_artist_add').before(part);
+	let input = part.querySelector('.prompt_artist_name input');
+	input.value = '';
+	delete input.dataset.match;
+	delete input.dataset.isPhoto;
+	input.addEventListener('focus', function(e) {
+		this.dataset.hasFocus = 'yes';
+		setXPosOfSearchOutput();
+	});
+	input.addEventListener('keyup', function(e) {
+		promptBuilderSearch(this,e);
+	});
+	input.addEventListener('blur', function(e) {
+		// need to give time for search result row click event
+		timer = setTimeout(promptBuilderBlur.bind(this, this), 100);
+		if(this.dataset.match === undefined) {
+			this.value = '';
+		}
+	});
+	let intensity = part.querySelector('.prompt_artist_intensity select');
+	intensity.selectedIndex = 'x1';
+	intensity.addEventListener('change', function(e) {
+		writePrompt();
+	});
+	let combine = part.querySelector('.prompt_artist_combine select');
+	combine.selectedIndex = 'mix';
+	combine.addEventListener('change', function(e) {
+		writePrompt();
+	});
+	let remove = part.querySelector('.prompt_artist_remove');
+	remove.addEventListener('click', function(e) {
+		promptBuilderRemoveArtist(this);
+		writePrompt();
+	});
+	let left = part.querySelector('.prompt_artist_left');
+	left.addEventListener('click', function(e) {
+		promptBuilderMove(this.parentNode,'left');
+		writePrompt();
+	});
+	let right = part.querySelector('.prompt_artist_right');
+	right.addEventListener('click', function(e) {
+		promptBuilderMove(this.parentNode,'right');
+		writePrompt();
+	});
+	if(isStart) {
+		// start copies then removes the HTML part so that
+		// the event listeners don't need defined twice in the code
+		ogPart.remove();
+	}
+	updatePromptBuilderParts();
+	writePrompt();
+}
+
+function promptBuilderBlur(input) {
+	delete input.dataset.hasFocus;
+	document.getElementById('prompt_artist_search').classList.remove('show');
+	writePrompt();
+}
+
+function updatePromptBuilderParts() {
+	let count = 1;
+	let parts = Array.from(document.querySelectorAll('.prompt_artist'));
+	if(parts.length == 1) {
+		let part = parts[0];
+		let intensity = part.querySelector('.prompt_artist_intensity');
+		let combine = part.querySelector('.prompt_artist_combine');
+		let left = part.querySelector('.prompt_artist_left');
+		let right = part.querySelector('.prompt_artist_right');
+		let remove = part.querySelector('.prompt_artist_remove');
+		intensity.style.display = 'none';
+		combine.style.display = 'none';
+		left.style.display = 'none';
+		right.style.display = 'none';
+		remove.style.display = 'none';
+	} else {
+		for(i=0,il=parts.length; i<il; i++) {
+			let part = parts[i];
+			let countEl = part.querySelector('.prompt_artist_count div');
+			let intensity = part.querySelector('.prompt_artist_intensity');
+			let combine = part.querySelector('.prompt_artist_combine');
+			let left = part.querySelector('.prompt_artist_left');
+			let right = part.querySelector('.prompt_artist_right');
+			let remove = part.querySelector('.prompt_artist_remove');
+			countEl.textContent = count;
+			count++;
+			intensity.style.display = '';
+			combine.style.display = '';
+			left.style.display = '';
+			right.style.display = '';
+			remove.style.display = '';
+			if(i==0) {
+				left.style.display = 'none';
+				combine.style.display = 'none';
+				if(il==1) {
+					right.style.display = 'none';
+				}
+			} else if(i==il-1) {
+				right.style.display = 'none';
+			}
+		}
+	}
+}
+
+function promptBuilderMove(part,direction) {
+	if(direction == 'left') {
+		part.previousElementSibling.before(part);
+	} else if(direction == 'right') {
+		part.nextElementSibling.after(part);
+	}
+	updatePromptBuilderParts();
+}
+
+function promptBuilderRemoveArtist(removeButton) {
+	if(removeButton.textContent.trim() == 'X') {
+		removeButton.textContent = 'again';
+		timer = setTimeout(cleanupRemoveButton.bind(this, removeButton), 1000);
+	} else {
+		removeButton.parentNode.remove();
+		updatePromptBuilderParts();
+	}
+}
+
+function cleanupRemoveButton(removeButton) {
+	removeButton.textContent = 'X';
+}
+
+function promptBuilderFillArtist(item,e) {
+	var name = item.closest('.image-item').getElementsByClassName('firstN')[0].textContent +
+	' ' + item.closest('.image-item').getElementsByClassName('lastN')[0].textContent;
+	let inputs = Array.from(document.querySelectorAll('.prompt_artist_name input'));
+	for(i=0,il=inputs.length; i<il; i++) {
+		if(inputs[i].value == '') {
+			inputs[i].value = name;
+			promptBuilderSearch(inputs[i],e);
+			break;
+		}
+	}
+}
+
+function promptBuilderHide() {
+	document.querySelector('#prompt_builder').classList.remove('show');
+}
+
+function promptBuilderShow() {
+	document.querySelector('#prompt_builder').classList.add('show');
+}
+
+function promptBuilderSearch(input,event) {
+	if(input.dataset.match !== undefined) {
+		event.preventDefault();
+		if(event.key === 'Backspace' || event.keyCode === 8) {
+			input.value = '';
+			delete input.dataset.match;
+			delete input.dataset.isPhoto;
+		} else {
+			input.value = input.dataset.match;
+		}
+	} else {
+		let matches = 0;
+		let output = document.getElementById('prompt_artist_search');
+		output.innerHTML = '';
+		let match = '';
+		let isPhoto = false;
+		for(i=0,il=artistsData.length; i<il; i++) {
+			let artistName = artistsData[i][1] + ' ' + artistsData[i][0];
+			if(artistName.toLowerCase().indexOf(input.value.toLowerCase()) > -1) {
+				let outputRow = document.createElement('div');
+				outputRow.textContent = artistName;
+				outputRow.addEventListener('click', function(e) {
+					let input = document.querySelector('input[data-has-focus="yes"]');
+					input.value = this.textContent;
+					promptBuilderSearch(input,e);
+					input.focus();
+				});
+				output.appendChild(outputRow);
+				matches++;
+				match = artistName;
+				if(artistsData[i][2].toLowerCase().indexOf('photography') > -1) {
+					isPhoto = true;
+				}
+			}
+		}
+		if(matches == 0) {
+			let noneFound = document.createElement('div');
+			noneFound.textContent = 'no matching names';
+			output.appendChild(noneFound);
+		} else if(matches == 1) {
+			input.value = match;
+			event.preventDefault();
+			input.dataset.match = match;
+			if(isPhoto) {
+				input.dataset.isPhoto = 'yes';
+			} else {
+				input.dataset.isPhoto = 'no';
+			}
+			output.classList.remove('show');
+			writePrompt();
+		} else {
+			output.classList.add('show');
+			promptBuilderSearchSortOutput(output);
+		}
+	}
+}
+
+function debounceSetXPosOfSearchOutput(func, delay) {
+    let debounceTimer;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => func.apply(context, args), delay);
+    };
+}
+
+function setXPosOfSearchOutput() {
+	let input = document.querySelector('.prompt_artist input:focus');
+	if(input) {
+		let output = document.getElementById('prompt_artist_search');
+		let xPos = input.getBoundingClientRect().left;
+		output.style.left = xPos + 'px';
+	}
+}
+
+function promptBuilderSearchSortOutput(output) {
+	let rows = Array.from(output.querySelectorAll('div'));
+	rows.sort(function(a, b) {
+		var aValue = a.textContent;
+		var bValue = b.textContent;
+		return aValue.localeCompare(bValue);
+	});
+	rows.forEach(function(row) {
+		output.appendChild(row);
+	});
+}
+
+
+function writePrompt() {
+	let prompt = '';
+	let edited = true;
+	let editable = document.querySelector('#prompt_result_editable').textContent.trim();
+	let editMe = ['you can edit me','pick an artist, then edit me',''];
+	if(editable == editMe[0] || editable == editMe[1] || editable == editMe[2]) {
+		edited = false;
+	}
+	let parts = Array.from(document.querySelectorAll('.prompt_artist'));
+	let nextCombine = 'start';
+	let startAt = 0;
+	let missingName = false;
+	if(parts.length == 1) {
+		let part = parts[0];
+		let name = part.querySelector('input').value;
+		if(name == '') {
+			missingName = true;
+		}
+		let style = promptStyleWords[0];
+		let isPhoto = part.querySelector('input').dataset.isPhoto;
+		if(isPhoto == 'yes') {
+			style = promptStyleWords[1];
+		}
+		if(name != '') {
+			prompt = style + ' ' + name;
+		}
+	} else {
+		for(pCount=1,pLength=parts.length; pCount<pLength; pCount++) {
+			// i starts at 1 because first part's combine value is ignored
+			let part = parts[pCount];
+			let thisCombine = part.querySelector('.prompt_artist_combine select').value;
+			if(parts[pCount+1]) {
+				if(nextCombine == 'start') {
+					nextCombine = parts[pCount+1].querySelector('.prompt_artist_combine select').value;
+				}
+			} else {
+				nextCombine = 'end';
+			}
+			if(thisCombine != nextCombine || nextCombine == 'end' || thisCombine == 'swap') {
+				if(thisCombine == 'loop') {
+					prompt = '[' + prompt;
+				} else if(thisCombine == 'swap') {
+					prompt = '[' + prompt;
+				}
+				// loop through artists with matching combine
+				for(j=startAt,jl=pCount+1; j<jl; j++) {
+					part = parts[j];
+					let name = part.querySelector('input').value;
+					if(name == '') {
+						missingName = true;
+						break;
+					}
+					let style = promptStyleWords[0];
+					let isPhoto = part.querySelector('input').dataset.isPhoto;
+					if(isPhoto == 'yes') {
+						style = promptStyleWords[1];
+					}
+					let intensityNum = parseInt(part.querySelector('.prompt_artist_intensity select').value);
+					// repeat based on intensity
+					for(k=0,kl=intensityNum; k<kl; k++) {
+						if(thisCombine == 'add') {
+							prompt += style + ' ' + name + ',';
+						} else if(thisCombine == 'loop') {
+							prompt += style + ' ' + name + '|';
+						} else if(thisCombine == 'swap') {
+							prompt += style + ' ' + name + ',';
+						}
+					}
+					if(thisCombine == 'swap') {
+						prompt = prompt.substring(0,prompt.length-1);
+						prompt += ':';
+					}
+				}
+				prompt = prompt.substring(0,prompt.length-1);
+				if(thisCombine == 'loop') {
+					prompt += ']'
+				} else if(thisCombine == 'swap') {
+					prompt += ':0.5]'
+				}
+				startAt = pCount;
+			}
+		}
+	}
+	if(missingName) {
+		// no artists are selected
+		if(!edited) {
+			editable = editMe[1];
+		}
+		prompt = '<span id="prompt_result_editable" contenteditable="true">' + editable + '</span>';
+	} else {
+		// 1 or more artists selected
+		if(!edited) {
+			editable = editMe[0];
+		}
+		prompt = formatPrompt(prompt);
+		prompt = '<span><b>(</b>' + prompt + '<b>:1.5)</b></span>, ' +
+			'<span><b>(</b>an image<b>:0.5)</b>, </span>' +
+			'<span><b>(</b><span id="prompt_result_editable" contenteditable="true">' + editable + '</span><b>:1.0)</b></span>';
+	}
+	document.querySelector('#prompt_result div').innerHTML = prompt;
+	document.getElementById('prompt_result_editable').addEventListener('blur', function(e) {
+		let str = this.innerText;
+		this.innerHTML = str;
+	});
+
+}
+
+function formatPrompt(prompt) {
+	let promptArr = [];
+	let style = promptStyleWords[0];
+	if(prompt.indexOf(promptStyleWords[0]) > -1 && prompt.indexOf(promptStyleWords[1]) < 0) {
+		// prompt contains only non-photographers
+		// so use the style words for st
+		promptArr = prompt.split(promptStyleWords[0]);
+	/*
+	} else if(prompt.indexOf(promptStyleWords[0]) < 0 && prompt.indexOf(promptStyleWords[1]) > -1) {
+		// prompt contains only photographers
+		promptArr = prompt.split(promptStyleWords[1]);
+		style = promptStyleWords[1];
+	*/
+	} else {
+		// prompt contains only both photographers and non
+		// using the shorter prompt event though it makes the style weaker
+		// because it uses for fewer tokens for multiple artists
+		let regStr = new RegExp(promptStyleWords[0],'g');
+		prompt = prompt.replace(regStr,promptStyleWords[1]);
+		promptArr = prompt.split(promptStyleWords[1]);
+		style = promptStyleWords[1];
+
+	}
+	if(promptArr.length > 0) {
+		prompt = style + ' ';
+		for(i=0,il=promptArr.length; i<il; i++) {
+			prompt += promptArr[i];
+		}
+	}
+	prompt = prompt.replace('|||','');
+	prompt = prompt.replace(/\[ |\[/g,'<i>[</i>');
+	prompt = prompt.replace(/\| |\|/g,'<i>|</i>');
+	prompt = prompt.replace(/: |:/g,'<i>:</i>');
+	prompt = prompt.replace(/]/g,'<i>]</i>');
+	return prompt;
+}
+
+/*
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+*/
+
 function addAllListeners() {
 	// global
 	document.addEventListener('keydown', function(event) {
@@ -2436,6 +2845,7 @@ function addAllListeners() {
 		});
 		imageItem.getElementsByTagName('h3')[0].addEventListener('click', function(e) {
 			copyStuffToClipboard(this,'name');
+			promptBuilderFillArtist(this,e);
 		});
 		imageItem.getElementsByTagName('h4')[0].addEventListener('click', function(e) {
 			if(!this.classList.contains('edit_mode')) {
@@ -2455,4 +2865,26 @@ function addAllListeners() {
 			gutter.removeEventListener('mousemove', movePartition, false);
 		}, false);
 	}, false);
+	// prompt builder
+	var prompt_builder = document.getElementById('prompt_builder');
+	prompt_builder.addEventListener('click', function(e) {
+		promptBuilderShow();
+	});
+	var prompt_builder_hide = document.getElementById('prompt_builder_hide');
+	prompt_builder_hide.addEventListener('click', function(e) {
+		promptBuilderHide();
+		e.stopPropagation();
+	});
+	var prompt_result_copy = document.getElementById('prompt_result_copy');
+	prompt_result_copy.addEventListener('click', function(e) {
+		copyStuffToClipboard(null,'prompt');
+	});
+	var prompt_artist_add = document.getElementById('prompt_artist_add');
+	prompt_artist_add.addEventListener('click', function(e) {
+		promptBuilderAddArtist();
+	});
+	var prompt_selector_div = document.querySelector('#prompt_selector > div');
+	prompt_selector_div.addEventListener('scroll', debounceSetXPosOfSearchOutput(function() {
+		setXPosOfSearchOutput();
+	}, 100));
 }
