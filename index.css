@@ -3,6 +3,7 @@ html, body {
 	color: #fff;
 	font-family: 'Poppins', sans-serif;
 	font-size: 16px;
+	line-height: 100%;
 	margin: 0;
 	padding: 0;
 	height: 100%;
@@ -42,8 +43,8 @@ h4 {
 	display: flex;
 	flex-direction: column;
 	flex-wrap: wrap;
+	gap: 1px;
 	opacity: 1;
-	line-height: 140%;
 	box-sizing: border-box;
 	padding: 20px 20px 60px 20px;
 	overflow: auto;
@@ -185,7 +186,7 @@ h4 {
 
 .divider {
 	border-bottom: 1px solid #333;
-	margin: 10px 40px 5px 0;
+	margin: 0px 40px 10px 0;
 }
 
 #toggles.hide {
@@ -193,15 +194,19 @@ h4 {
 	transition: opacity 50ms linear;
 }
 
-#options_prompts {
-	display: none;
-}
-
 #options_info,
 #options_prompts,
 #options_artist_sort,
 #options_tag_sort {
-	margin-right: 10px;
+	display: flex;
+	align-items: center;
+	padding: 2px 0;
+	margin-left: 4px;
+	margin-bottom: -2px;
+}
+
+#options_prompts {
+	display: none;
 }
 
 #options_prompts > span:first-child,
@@ -210,13 +215,19 @@ h4 {
 	margin-left: 21px;
 }
 
-#toggles #options_info {
-	margin-bottom: 10px;
+#options_tag_sort {
+	margin-bottom: 6px;
+}
+
+#options_info {
+	margin-left: 0;
+	padding: 0;
+	margin-bottom: 12px;
 	cursor: pointer;
 }
 
 #toggles #options_info .count {
-	padding: 1px 5px 3px 5px;
+	padding: 4px 8px 5px 8px;
 	border-radius: 3px;
 	color: #000;
 	font-weight: bold;
@@ -237,6 +248,79 @@ h4 {
 	font-size: 12px;
 }
 
+#second_model {
+	margin: -5px 0 10px 0;
+}
+
+#second_model span {
+	display: inline-block;
+	width: 18px;
+	height: 18px;
+	margin-right: 5px;
+	text-align: center;
+	color: #fff;
+	opacity: 0.5;
+}
+
+#second_model div {
+	display: inline-flex;
+	width: min-content;
+	margin-top: 5px;
+	align-items: center;
+	gap: 5px;
+	flex-grow: 1;
+	position: relative;
+	border: 1px solid #ffe300;
+	border-radius: 50px;
+	box-sizing: border-box;
+	padding: 0px 10px;
+	cursor: pointer;
+	background-color: rgba(255, 227, 0, 0.2);
+	opacity: 0.8;
+}
+
+#second_model div:hover {
+	opacity: 1;
+}
+
+#second_model div::after {
+	content: '';
+	min-width: 10px;
+	height: 6px;
+	background-color: #ffe300;
+	clip-path: polygon(5% 0, 95% 0, 100% 15%, 55% 100%, 45% 100%, 0 15%);
+	position: relative;
+	z-index: 0;
+	left: -15px;
+	margin-right: -15px;
+	/* the arrow isn't clickable, so we position it over the select */
+	/* and the selects' min-widths proves extra space for it */
+}
+
+#second_model select {
+	appearance: none;
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	margin: 0;
+	padding: 0 1px 0 0;
+	border: none;
+	outline: none;
+	background-color: transparent;
+	color: #ffe300;
+	font-family: inherit;
+	font-size: inherit;
+	cursor: inherit;
+}
+
+#second_model select::-ms-expand {
+	display: none;
+}
+
+#second_model select {
+	min-width: 16ch;
+}
+
 label {
 	display: flex;
 	gap: 8px;
@@ -245,6 +329,7 @@ label {
 	white-space: nowrap;
 	opacity: 0.8;
 	cursor: pointer;
+	color: #fff;
 }
 
 label.isChecked {
@@ -276,7 +361,7 @@ label.category {
 	height: initial;
 	color: #00d5c0;
 	font-weight: bold;
-	padding-bottom: 5px;
+	padding-bottom: 6px;
 	margin: 10px 40px 5px 0;
 	border-bottom: 1px solid #333;
 	opacity: 1;
@@ -299,20 +384,49 @@ label .most_used_indicator {
 	font-style: normal;
 }
 
+#toggles.start label:not(.top_control) span {
+	display: none;
+}
+
+#toggles.start label:not(.top_control)::after {
+	content: '';
+	width: 200px;
+	background: #444;
+	background: linear-gradient(110deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0.1) 80%, rgba(255,255,255,0.05) 100%);
+	border-radius: 50px;
+    animation: loading-labels 2s linear infinite;
+}
+
+#toggles.start label:nth-child(3n):not(.top_control)::after {
+	width: 150px;
+	background: linear-gradient(110deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.05) 100%);
+}
+
+#toggles.start label:nth-child(3n+1):not(.top_control)::after {
+	width: 180px;
+	background: linear-gradient(110deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 80%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0.05) 100%);
+}
+
+@keyframes loading-labels {
+	0% { background-position: 0px 0 }
+	100% { background-position: 400px 0 }
+}
+
 input[type="checkbox"] {
 	appearance: none;
 	display: grid;
 	width: 17px;
 	height: 17px;
 	margin: 0;
-	transform: translateY(3px) translateX(0px);
+	transform: translateY(0px) translateX(0px);
 	border: 1px solid #666;
 	background-color: #444;
 	color: #444;
 	border-radius: 3px;
 	place-content: center;
 	box-shadow: inset 0px 3px 5px #00000045;
-	transition: all 100ms cubic-bezier(.35,1.63,.84,1.64);
+	/* looks nice but too slow on Chrome */
+	/* transition: all 100ms cubic-bezier(.35,1.63,.84,1.64); */
 }
 
 label.category input[type="checkbox"] {
@@ -342,8 +456,8 @@ label.isChecked span:first-of-type {
 input[type="checkbox"]:checked {
 	width: 23px;
 	height: 23px;
-	transform: translateY(0px) translateX(-3px);
-	margin-bottom: -1px;
+	transform: translateY(-4px) translateX(-3px);
+	margin-bottom: -6px;
 	margin-right: -6px;
 	border: none;
 	background-color: currentColor;
@@ -364,7 +478,9 @@ input[type="checkbox"]:checked::before {
 }
 
 #toggles #artistsShown {
-	margin: 0 0 0 21px;
+	display: flex;
+	margin: -4px 0 8px 25px;
+	padding: 3px 0;
 	white-space: nowrap;
 	position: relative;
 	top: 1px;
@@ -379,41 +495,54 @@ input[type="checkbox"]:checked::before {
 
 #toggles .count {
 	opacity: 0.5;
+	min-width: 5ch;
 }
 
 #toggles .link {
 	display: inline-block;
-	width: 20px;
-	height: 20px;
-	opacity: 0.7;
 	cursor: pointer;
 	box-sizing: border-box;
-	margin-left: 5px;
-	padding-left: 2px;
+	margin-left: 8px;
+	padding: 5px 3px 4px 3px;
 	border-radius: 4px;
-	line-height: 130%;
+	font-size: 20px;
+	opacity: 0.7;
 }
 
 #toggles .link.selected {
-	background-color: #444;
-	opacity: 1;
 	cursor: default;
+	background-color: rgba(255, 227, 0, 0.3);
+	border: 1px solid rgba(255, 227, 0, 0.5);
+	opacity: 1;
+}
+
+#toggles #sortAR.link.selected {
+	/* you can re-randomize */
+	cursor: pointer;
 }
 
 #toggles .link:hover {
 	opacity: 1;
 }
 
+#second_model:hover::after,
 #toggles .link:hover::after {
 	position: absolute;
 	top: 20px;
 	left: 20px;
-	background-color: black;
-	padding: 0px 4px;
-	border: 1px solid #777;
+	width: 200px;
+	padding: 4px 0 7px 0;
 	border-radius: 3px;
-	color: #ddd;
-	box-shadow: 0 5px 10px black;
+	color: #000;
+	font-weight: bold;
+	background-color: #00d5c0;
+	font-size: 16px;
+	text-align: center;
+	opacity: 1;
+}
+
+#second_model:hover::after {
+	content: 'Compare to SDXL 1.0';
 }
 
 #infoI:hover::after {
@@ -441,19 +570,19 @@ input[type="checkbox"]:checked::before {
 }
 
 #sortAA:hover::after {
-	content: 'alpha';
+	content: 'sort by alpha';
 }
 
 #sortAR:hover::after {
-	content: 'random';
+	content: 'sort by random';
 }
 
 #sortTA:hover::after {
-	content: 'alpha';
+	content: 'sort by alpha';
 }
 
 #sortTC:hover::after {
-	content: 'count';
+	content: 'sort by count';
 }
 
 #info_switcher {
@@ -514,6 +643,7 @@ input[type="checkbox"]:checked::before {
 	padding: 20px;
 	box-sizing: border-box;
 	overflow-y: scroll;
+	line-height: 160%;
 }
 
 .information_section.selected {
@@ -844,7 +974,8 @@ input[type="checkbox"]:checked::before {
 	transform: translate(-50%, -50%);
 	box-sizing: border-box;
 	background-color: #545454;
-	box-shadow: 0 0 5px #777
+	box-shadow: 0 0 5px #777;
+	line-height: 155%;
 }
 
 .image-item .imgTools > div.art_prev {
@@ -873,10 +1004,10 @@ input[type="checkbox"]:checked::before {
 }
 
 .image-item .imgTools > div.art_star {
-	top: 0;
-	left: 64px;
-	width: 128px;
-	height: 100%;
+	top: 64px;
+	left: 0px;
+	width: 256px;
+	height: 128px;
 	background-color: initial;
 }
 
@@ -889,6 +1020,32 @@ input[type="checkbox"]:checked::before {
 	filter: grayscale(100%);
 	background-color: initial;
 	box-shadow: none;
+}
+
+.image-item .imgTools > div.art_set {
+	bottom: 0;
+	left: 60px;
+	width: 136px;
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	padding: 13px;
+	box-sizing: border-box;
+	font-size: 12px;
+}
+
+.image-item .art_set span {
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 24px;
+	border-radius: 4px;
+	box-sizing: border-box;
+	padding-top: 3px;
+	cursor: pointer;
+	text-align: center;
+	background-color: #666;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 .image-item .imgBox {
@@ -907,23 +1064,34 @@ input[type="checkbox"]:checked::before {
 	animation-duration: 100ms;
 	animation-timing-function: linear;
 	animation-iteration-count: 1;
-	animation-direction: forward;
+	animation-direction: normal;
 }
 
-.image-item:hover .imgBox {
+.image-item .deprecated {
+	color: #888;
+	text-align: center;
+	display: block;
+	padding: 70px 40px 0px 40px;
+}
+
+.image-item.hover .imgBox {
+	display: flex;
 	position: fixed;
 	z-index: 1;
 	top: 0px;
 	left: 20px;
-	/* this will be overwritten by stylesheet added by JS */
-	width: 40%;
+	width: 40%; /* this will be overwritten by stylesheet added by JS */
 	cursor: not-allowed;
 	transform: translateY(20px);
 	animation-name: enlarge;
 	animation-duration: 100ms;
 	animation-timing-function: east-out;
 	animation-iteration-count: 1;
-	animation-direction: forward;
+	animation-direction: normal;
+}
+
+.image-item .imgBox.hidden {
+	display: none;
 }
 
 @keyframes enlarge {
@@ -946,37 +1114,56 @@ input[type="checkbox"]:checked::before {
 	}
 }
 
-.image-item .deprecated {
-	color: #888;
-	text-align: center;
-	display: block;
-	padding: 70px 40px 0px 40px;
-}
-
-.image-item img {
-	display: block;
-	width: 256px;
-	position: absolute;
+.image-item .img {
+	display: inline-block;
+	box-sizing: border-box;
 	top: 0;
+	width: 256px;
+	aspect-ratio: 1/1;
+	position: absolute;
+	color: #777;
+	background-color: #222;
+	vertical-align: middle;
+	line-height: 150%;
+	font-size: 14px;
 }
 
-.image-item .imgBox img.hidden {
+.image-item .imgBox .img.hidden {
 	display: none;
 }
 
-.image-item:hover .imgBox img {
+.image-item .imgBox .img.missing {
+	border: 16px solid #222;
+}
+
+.image-item .imgBox .model_name {
+	line-height: 130%;
+}
+
+.image-item.hover .imgBox .img {
 	width: 100%;
 	z-index: 1;
 	box-shadow: -10px 10px 20px rgba(0,0,0,0.6);
 }
 
-.image-item:hover .imgBox img.hidden {
+.image-item.hover .imgBox .img.hidden {
 	display: initial;
 	width: 33%;
+	height: 25%;
 	position: relative;
 	top: 75%;
 	box-shadow: initial;
 	z-index: 0;
+}
+
+.image-item.hover .imgBox .img.hidden span {
+	display: block;
+	position: relative;
+	top: 50%;
+	transform: translateY(-50%);
+	padding: 0 12%;
+	text-align: center;
+	color: #777;
 }
 
 .image-item.favorite {

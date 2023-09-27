@@ -3,8 +3,23 @@
 //
 //
 // global variables
+var p1 = performance.now();
 var timer;
 var artTypes = ['🎨','🧑','🏞️'];
+var artTitles = ['artwork','portraits','landscapes'];
+var models = [
+	// path, short display name, full display name
+	['SDXL_1_0','SDXL 1.0','SDXL 1.0 Stability.ai official'],
+	['SDXL_DynaVision','XL DynaVision','SDXL DynaVision beta v0.4.1.1'],
+	['SDXL_Crystal_Clear','XL CrystalClr','Crystal Clear XL vCCXL'],
+];
+var secondModelIsSelected = false;
+var secondModelSelected = 1;
+var initialPosX = -1;
+var initialPosY = -1;
+var prevScrollTop = -1; // used for lazyLoad
+var newPosX = -1;
+var newPosY = -1;
 var imgTypeShown = 0;
 var log = '';
 var editMostUsedMode = false;
@@ -15,12 +30,18 @@ var style, tempStyle, stylesheet, tempStylesheet, imgHoverRule, teaseRules;
 var theTime = new Date;
 var startUpTime;
 var tagsConcatenated = new Set();
+var tagCountsPermissive = [];
 var editedArtists = new Set();
 var storingAccessType = 'none';
+var missingFiles = '';
 // the longer prompt is better for non-photographers
 var promptStyleWords = ['artwork in the style of','by|||']
-var start = performance.now();
 const lowCountThreshold = 3;
+const unloadedImgSrc = 'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAkA4JaQAA3AA/vgfgAA='; // a 1x1 pixel
+const maxAristsToBeLoaded = 50; // each artist has 6 images, 3 per model
+const artistLoadingChunk = 15; // artists loaded per lazy load call
+const missingInterval = setInterval(checkMissingInterval, 5000);
+var imageItemUnloadQueue = [];
 //
 //
 //
@@ -34,9 +55,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // functions
 async function startUp() {
-	updateTagsConcatenated();
+	makeConcatenatedTagSet();
 	await loadEditedArtists();
 	insertArtists();
+	insertModels();
 	insertCheckboxesFromArtistsData();
 	insertCheckboxesFromCategories();
 	await loadCheckboxesState();
@@ -45,13 +67,10 @@ async function startUp() {
 	await loadFavoritesState();
 	hideAllArtists();
 	unhideBasedOnPermissiveSetting();
-	updateArtistsCountPerTag('start');
-	rotatePromptsImages();
-	await loadMostUsedTags();
 	sortArtists();
-	sortTags();
-	updateArtistsCountPerCategory();
-	showHideLowCountTags();
+	rotatePromptsImages();
+	updateArtistsImgSrc(false,false);
+	updateTags('start');
 	makeStyleRuleForDrag();
 	teasePartition();
 	promptBuilderAddArtist(true);
@@ -193,7 +212,7 @@ function alertNoStoringAccess(wait) {
 	},wait);
 }
 
-function updateTagsConcatenated() {
+function makeConcatenatedTagSet() {
 	// this set is used for tag editing mode
 	for (var i=0, il=tagCategories.length; i<il; i++) {
 		for (var j=1, jl=tagCategories[i].length; j<jl; j++) {
@@ -244,10 +263,10 @@ async function loadEditedArtists() {
 }
 
 function insertArtists() {
+	let container = document.getElementById('image-container');
 	// artistsData is defined in the artists_and_tags.js file
-	let missingFiles = '';
-	var container = document.getElementById('image-container');
-	let imagePromises = artistsData.map((artist) => {
+	for(i=0, il=artistsData.length; i<il; i++) {
+		var artist = artistsData[i];
 		var last = artist[0];
 		var first = artist[1];
 		var tags2 = artist[2].replaceAll('|', ', '); // for display
@@ -257,9 +276,6 @@ function insertArtists() {
 		var itemDiv = document.createElement('div');
 		itemDiv.className = 'image-item';
 		itemDiv.dataset.tagList = artist[2].toLowerCase();
-		if(artist[3]) {
-			itemDiv.dataset.deprecated = true;
-		}
 		var itemHeader = document.createElement('span');
 		var h3 = document.createElement('h3');
 		itemHeader.appendChild(h3);
@@ -277,124 +293,346 @@ function insertArtists() {
 		h4.title = 'copy to clipboard';
 		itemHeader.appendChild(h4);
 		itemDiv.appendChild(itemHeader);
-		var box = document.createElement('div');
+		//
+		var holder = document.createElement('div');
 		var imgTools = document.createElement('div');
 		imgTools.className = 'imgTools';
+		//
 		var artPrev = document.createElement('div');
 		artPrev.className = 'art_prev';
 		var artPrevSpan = document.createElement('span');
-		artPrevSpan.textContent = '🧑';
+		artPrevSpan.textContent = '🎨';
+		artPrevSpan.title = 'showing artwork'
 		artPrev.appendChild(artPrevSpan);
 		imgTools.appendChild(artPrev);
+		//
 		var artStar = document.createElement('div');
 		artStar.className = 'art_star';
 		var artStarSpan = document.createElement('span');
 		artStarSpan.textContent = '⭐️';
+		artStarSpan.title = 'toggle favorite';
 		artStar.appendChild(artStarSpan);
 		imgTools.appendChild(artStar);
+		//
 		var artNext = document.createElement('div');
 		artNext.className = 'art_next';
 		var artNextSpan = document.createElement('span');
-		artNextSpan.textContent = '🏞️';
+		artNextSpan.textContent = '🎨';
+		artNextSpan.title = 'showing artwork';
 		artNext.appendChild(artNextSpan);
 		imgTools.appendChild(artNext);
+		//
 		var artEdit = document.createElement('div');
 		artEdit.className = 'art_edit';
 		var artEditSpan = document.createElement('span');
 		artEditSpan.textContent = '✍️';
+		artEditSpan.title = 'toggle tag edit mode';
 		artEdit.appendChild(artEditSpan);
 		imgTools.appendChild(artEdit);
+		//
 		var artSearch = document.createElement('a');
 		artSearch.className = 'art_search';
 		artSearch.href = 'https://www.bing.com/images/search?q=' + artist[1].replace(' ','+') + '+' + artist[0].replace(' ','+') + '+artist';
 		artSearch.target = '_blank';
+		artSearch.title = 'Bing image search';
 		var artSearchSpan = document.createElement('span');
 		artSearchSpan.textContent = '🌐';
 		artSearch.appendChild(artSearchSpan);
 		imgTools.appendChild(artSearch);
-		box.appendChild(imgTools);
-		var imgBox = document.createElement('div');
-		imgBox.className = 'imgBox';
+		//
+		var artSet = document.createElement('div');
+		artSet.className = 'art_set';
+		var artSetSpan = document.createElement('span');
+		artSetSpan.textContent = 'A: ' + models[0][1];
+		artSetSpan.title = 'showing ' + models[0][2];
+		artSet.appendChild(artSetSpan);
+		imgTools.appendChild(artSet);
+		//
+		holder.appendChild(imgTools);
+		var imgBox0 = document.createElement('div');
+		imgBox0.className = 'imgBox';
+		imgBox0.dataset.model = 0;
 		var imgArtwork = document.createElement('img');
 		var imgPortrait = document.createElement('img');
 		var imgLandscape = document.createElement('img');
-		imgArtwork.alt = `${first} ${last}` + ' - artwork';
-		imgPortrait.alt = `${first} ${last}` + ' - portrait';
-		imgLandscape.alt = `${first} ${last}` + ' - landscape';
-		imgArtwork.className = 'img_artwork';
-		imgPortrait.className = 'img_portrait hidden';
-		imgLandscape.className = 'img_landscape hidden';
-		let src = 'images/SDXL_1_0_thumbs/';
-		if(first == '') {
-			src += last.replaceAll(' ', '_');
-		} else {
-			src += first.replaceAll(' ', '_') + '_' + last.replaceAll(' ', '_');
-		}
-		// files use accented characters and huggingface stores the files with this encoding
-		src = encodeURI(src.normalize("NFD"));
-		imgBox.appendChild(imgArtwork);
-		imgBox.appendChild(imgPortrait);
-		imgBox.appendChild(imgLandscape);
-		box.appendChild(imgBox);
-		itemDiv.appendChild(box);
-		container.appendChild(itemDiv);
+		var modelName = document.createElement('span');
+		imgArtwork.className = 'img img_artwork';
+		imgPortrait.className = 'img img_portrait hidden';
+		imgLandscape.className = 'img img_landscape hidden';
+		modelName.className = 'img model_name hidden';
+		imgArtwork.src = unloadedImgSrc;
+		imgPortrait.src = unloadedImgSrc;
+		imgLandscape.src = unloadedImgSrc;
+		imgBox0.appendChild(imgArtwork);
+		imgBox0.appendChild(imgPortrait);
+		imgBox0.appendChild(imgLandscape);
+		let modelNameSpan = document.createElement('span');
+		modelNameSpan.appendChild(document.createElement('strong'));
+		modelNameSpan.querySelector('strong').appendChild(document.createTextNode('Model:'));
+		modelNameSpan.appendChild(document.createElement('br'));
+		modelNameSpan.appendChild(document.createTextNode(models[0][2]));
+		modelName.appendChild(modelNameSpan);
+		imgBox0.appendChild(modelName);
+		holder.appendChild(imgBox0);
+		//
+		let imgBox1 = imgBox0.cloneNode(true);
+		imgBox1.classList.add('hidden');
+		imgBox1.dataset.model = 1;
+		imgBox1.querySelector('.model_name span').childNodes[2].nodeValue = models[secondModelSelected][2];
+		holder.appendChild(imgBox1);
+		//
 		if(artist[3]) {
+			itemDiv.dataset.deprecated = true;
 			var deprecatedSpan = document.createElement('span');
 			deprecatedSpan.textContent = 'this artist is unknown to SDXL - more info in the help ⁉️'
 			deprecatedSpan.className = 'deprecated';
-			imgBox.appendChild(deprecatedSpan);
-			return Promise.allSettled([
-				new Promise((resolve, reject) => {
-					imgArtwork.style.display = 'none';
-					imgArtwork.src = 'images/SDXL_1_0_thumbs/1x1.webp';
-				}),
-				new Promise((resolve, reject) => {
-					imgPortrait.style.display = 'none';
-					imgPortrait.src = 'images/SDXL_1_0_thumbs/1x1.webp';
-				}),
-				new Promise((resolve, reject) => {
-					imgLandscape.style.display = 'none';
-					imgLandscape.src = 'images/SDXL_1_0_thumbs/1x1.webp';
-				})
-			]);
-		} else {
-			// if not flagged as deprecated
-			return Promise.allSettled([
-				new Promise((resolve, reject) => {
-					imgArtwork.onload = resolve;
-					imgArtwork.onerror = () => {
-						missingFiles += '<li>' + first + '_' + last + '-artwork.webp</li>';
-						reject();
-					};
-					imgArtwork.src = src + '-artwork.webp';
-				}),
-				new Promise((resolve, reject) => {
-					imgPortrait.onload = resolve;
-					imgPortrait.onerror = () => {
-						missingFiles += '<li>' + first + '_' + last + '-portrait.webp</li>';
-						reject();
-					};
-					imgPortrait.src = src + '-portrait.webp';
-				}),
-				new Promise((resolve, reject) => {
-					imgLandscape.onload = resolve;
-					imgLandscape.onerror = () => {
-						missingFiles += '<li>' + first + '_' + last + '-landscape.webp</li>';
-						reject();
-					};
-					imgLandscape.src = src + '-landscape.webp';
-				})
-			]);
+			imgBox0.appendChild(deprecatedSpan);
 		}
+		//
+		itemDiv.appendChild(holder);
+		container.appendChild(itemDiv);
+	}
+}
+
+function getArtistsByDistanceFromMiddle() {
+	// visible artists based on the distance from the center with current scroll
+	// sort these to the top add add non-deprecated hidden artists after that
+	let imageItemsVisible = Array.from(document.querySelectorAll('.image-item:not(.hidden)'));
+	let artistsAreaCenter = (document.getElementById('rows').clientHeight / 2) - 300;
+	let middleItem = null;
+	for (let item of imageItemsVisible) {
+		// get rect!
+		let rect = item.getBoundingClientRect();
+		if (rect.top > artistsAreaCenter) {
+			if (!middleItem || middleItem.getBoundingClientRect().top > rect.bottom) {
+				middleItem = item;
+			}
+		}
+	}
+	if(middleItem !== null) {
+		let middleItemTop = middleItem.getBoundingClientRect().top;
+		imageItemsVisible.sort((a, b) => {
+			let aY = a.getBoundingClientRect().top;
+			let bY = b.getBoundingClientRect().top;
+			return Math.abs(aY - middleItemTop) - Math.abs(bY - middleItemTop);
+		});
+	}
+	return imageItemsVisible;
+}
+
+function updateArtistsImgSrc(filteredImageItems,onlySecondModel) {
+	if(filteredImageItems == false) {
+		// initial page load
+		filteredImageItems = getArtistsByDistanceFromMiddle();
+		let imageItemsHidden = Array.from(document.querySelectorAll('.image-item.hidden'))
+			.filter(item => !item.dataset.deprecated);
+		// if not enough visible artists, load hidden, unloaded, non-deprecated artists
+		filteredImageItems = filteredImageItems.concat(imageItemsHidden).slice(0, maxAristsToBeLoaded);
+	}
+	// load those artists (update the image src)
+	let imagePromises = [];
+	filteredImageItems.forEach(function(item){
+		let src0 = 'images/' + models[0][0] + '_thumbs/';
+		let src1 = 'images/' + models[secondModelSelected][0] + '_thumbs/';
+		let firstN = item.querySelector('.firstN').textContent;
+		let lastN = item.querySelector('.lastN').textContent;
+		// files use accented characters and huggingface stores the files with this encoding
+		src0 = encodeURI(src0.normalize("NFD"));
+		src1 = encodeURI(src1.normalize("NFD"));
+		if(firstN == '') {
+			src0 += lastN.replaceAll(' ', '_');
+			src1 += lastN.replaceAll(' ', '_');
+		} else {
+			src0 += firstN.replaceAll(' ', '_') + '_' + lastN.replaceAll(' ', '_');
+			src1 += firstN.replaceAll(' ', '_') + '_' + lastN.replaceAll(' ', '_');
+		}
+		//
+		let imgAlt0 = 'artist: ' + firstN + ' ' + lastN + ' - model: ' + models[0][1];
+		let imgAlt1 = 'artist: ' +firstN + ' ' + lastN + ' - model: ' + models[secondModelSelected][1];
+		//
+		let imgBox0 = item.querySelector('.imgBox[data-model="0"]');
+		let imgBox1 = item.querySelector('.imgBox[data-model="1"]');
+		delete imgBox1.querySelector('.img_artwork').dataset.thumbSrc;
+		delete imgBox1.querySelector('.img_portrait').dataset.thumbSrc;
+		delete imgBox1.querySelector('.img_landscape').dataset.thumbSrc;
+		let imgArray = [];
+		if(!onlySecondModel) {
+			imgArray.push([imgBox0.querySelector('.img_artwork'), src0 + '-artwork.webp', imgAlt0 + ' - prompt: artwork']);
+			imgArray.push([imgBox0.querySelector('.img_portrait'), src0 + '-portrait.webp', imgAlt0 + ' - prompt: portrait']);
+			imgArray.push([imgBox0.querySelector('.img_landscape'), src0 + '-landscape.webp', imgAlt0 + ' - prompt: landscape']);
+		}
+		imgArray.push([imgBox1.querySelector('.img_artwork'), src1 + '-artwork.webp', imgAlt1 + ' - prompt: artwork']);
+		imgArray.push([imgBox1.querySelector('.img_portrait'), src1 + '-portrait.webp', imgAlt1 + ' - prompt: portrait']);
+		imgArray.push([imgBox1.querySelector('.img_landscape'), src1 + '-landscape.webp', imgAlt1 + ' - prompt: landscape']);
+		//
+		generateUnloadQueue();
+		imgArray.forEach(function(imgDetails) {
+			let p = new Promise((resolve, reject) => {
+				imgDetails[0].src = imgDetails[1];
+				imgDetails[0].alt = imgDetails[2];
+				if(imgDetails[0].complete) {
+					if(imgDetails[0].classList.contains('img_artwork') &&
+						imgDetails[0].closest('.imgBox').dataset.model == '0') {
+						lazyUnloadOne();
+					}
+					resolve();
+					return;
+				}
+				imgDetails[0].onload = (img) => {
+					if(imgDetails[0].classList.contains('img_artwork') &&
+						imgDetails[0].closest('.imgBox').dataset.model == '0') {
+						lazyUnloadOne();
+					}
+					imgDetails[0].onload = null;
+					imgDetails[0].onerror = null;
+					resolve();
+				};
+				imgDetails[0].onerror = (img) => {
+					missingFiles += imgDetails[1] + '\n';
+					imgDetails[0].onload = null;
+					imgDetails[0].onerror = null;
+					reject(new Error('Image loading error'));
+				};
+			});
+			imagePromises.push(p);
+		});
 	});
-	let report = document.getElementById('missing_images_report');
 	Promise.allSettled(imagePromises).then(() => {
-		if(missingFiles.indexOf('webp')>0) {
-			report.innerHTML = missingFiles;
-		} else {
-			report.innerHTML = '<li>No thumbnails files are missing!  Enlarged images are loaded on hover.  If any are missing, they\'ll be listed here at that time.</li>'
-		}
 	});
+}
+
+function lazyLoad() {
+	let container = document.getElementById('rows');
+	let currentScrollTop = container.scrollTop;
+	if(prevScrollTop == -1) {
+		// this skips the scroll that's triggered on page load
+		prevScrollTop = currentScrollTop;
+		return;
+	}
+	let scrollDirection = currentScrollTop > prevScrollTop ? 'down' : 'up';
+	let scrollAmount = Math.abs(currentScrollTop - prevScrollTop);
+	let lookAhead = 750;
+	if(scrollAmount > lookAhead) {
+		lookAhead = scrollAmount;
+	}
+	let imageItems = Array.from(container.querySelectorAll('.image-item:not(.hidden)'));
+	// look for any visible unloaded images ahead in either scroll direction by the lookAhead amount
+	unloadedItemsInRange = imageItems.filter(item => {
+		let itemMid = item.getBoundingClientRect().top + (item.clientHeight / 2);
+		let imgSrc = item.querySelector('img').src;
+		return imgSrc.indexOf(unloadedImgSrc) > -1 &&
+			itemMid > 0 - lookAhead &&
+			itemMid < container.clientHeight + lookAhead;
+	});
+	if(unloadedItemsInRange.length > 0) {
+		let itemsToBeLoaded;
+		// get all unloaded images in the scroll direction, by closest
+		// it's already sorted top to bottom
+		if (scrollDirection === 'down') {
+			itemsToBeLoaded = imageItems.filter(item => {
+				let itemMid = item.getBoundingClientRect().top + (item.clientHeight / 2);
+				let imgSrc = item.querySelector('img').src;
+				return imgSrc.indexOf(unloadedImgSrc) > -1 &&
+					itemMid + currentScrollTop > currentScrollTop;
+			});
+			imageItems.reverse();
+		} else {
+			itemsToBeLoaded = imageItems.filter(item => {
+				let itemMid = item.getBoundingClientRect().top + (item.clientHeight / 2);
+				let imgSrc = item.querySelector('img').src;
+				return imgSrc.indexOf(unloadedImgSrc) > -1 &&
+					itemMid + currentScrollTop < currentScrollTop;
+			});
+			itemsToBeLoaded = itemsToBeLoaded.reverse();
+		}
+		itemsToBeLoaded = itemsToBeLoaded.slice(0, artistLoadingChunk);
+		// if we don't have enough in the forward direction work backwards
+		// for reasons I haven't figured out, sometimes the src update fails
+		// yet promise.allSettled doesn't fire, so we load up to the max each time
+		let allLoadedImageItems = Array.from(document.querySelectorAll('.image-item'));
+		allLoadedImageItems = allLoadedImageItems.filter(item => {
+			let imgSrc = item.querySelector('img').src;
+			return imgSrc.indexOf(unloadedImgSrc) == -1;
+		});
+		let i = 0;
+		while(itemsToBeLoaded.length < (maxAristsToBeLoaded - allLoadedImageItems.length)) {
+			itemsToBeLoaded.push(imageItems[i]);
+			i++;
+		}
+		// slice to a chunk-size and load
+		updateArtistsImgSrc(itemsToBeLoaded,false);
+	}
+	prevScrollTop = currentScrollTop;
+}
+
+function generateUnloadQueue() {
+	// there's no way to predict which artists are best to unload
+	// so pick a random chunk out of loaded, hidden, non-deprecated artists
+	let imageItemsHidden = Array.from(document.querySelectorAll('.image-item.hidden:not([data-deprecated="true"]'));
+	imageItemsHidden = imageItemsHidden.filter(item => {
+		let imgSrc = item.querySelector('img').src;
+		return imgSrc.indexOf(unloadedImgSrc) == -1;
+	});
+	imageItemsHidden.forEach(function(item) {
+		item.dataset.randomRank = Math.random();
+	});
+	imageItemsHidden.sort(function(a, b) {
+		var aValue = a.dataset.randomRank;
+		var bValue = b.dataset.randomRank;
+		return bValue - aValue;
+	});
+	// in case there aren't enough items, add all loaded, visible, non-deprecated artists, with furthest away sorted first
+	let imageItemsVisible;
+	imageItemsVisible = getArtistsByDistanceFromMiddle();
+	imageItemsVisible.reverse();
+	imageItemsVisible = imageItemsVisible.filter(item => {
+		let imgSrc = item.querySelector('img').src;
+		return imgSrc.indexOf(unloadedImgSrc) == -1;
+	});
+	imageItemUnloadQueue = imageItemsHidden.concat(imageItemsVisible);
+}
+
+function lazyUnloadOne() {
+	let allLoadedImageItems = Array.from(document.querySelectorAll('.image-item'));
+	allLoadedImageItems = allLoadedImageItems.filter(item => {
+		let imgSrc = item.querySelector('img').src;
+		return imgSrc.indexOf(unloadedImgSrc) == -1;
+	});
+	if(allLoadedImageItems.length > maxAristsToBeLoaded) {
+		let toBeUnloaded = imageItemUnloadQueue[0];
+		imageItemUnloadQueue.shift();
+		let images = toBeUnloaded.querySelectorAll('img');
+		images.forEach(function(img) {
+			img.src = unloadedImgSrc;
+			delete img.dataset.thumbSrc;
+		});
+	}
+}
+
+function insertModels() {
+	let secondModelSelector = document.querySelector('#second_model select');
+	secondModelSelector.innerHTML = '';
+	for (var i=1, il=models.length; i<il; i++) {
+		// model 0 is the primary model
+		let model = models[i];
+		let option = document.createElement('option');
+		option.value = model[0];
+		option.textContent = model[1];
+		secondModelSelector.appendChild(option);
+	}
+}
+
+function setSecondModelSelected(select) {
+	for(i=0,il=models.length; i<il; i++) {
+		if(models[i][0] === select.value) {
+			secondModelSelected = i;
+			break;
+		}
+	}
+	secondModelIsSelected = false;
+	rotateModelsImages();
+	// update images (but only second model)
+	updateArtistsImgSrc(false,true);
 }
 
 function insertCheckboxesFromArtistsData() {
@@ -464,8 +702,12 @@ async function loadCheckboxesState() {
 		for (let name in state) {
 			let checkbox = document.querySelector('input[name="'+name+'"]');
 			if (checkbox) {
-				checkbox.checked = state[name];
-				styleLabelToCheckbox(checkbox);
+				if(name != 'mode') {
+					// a past bug allowed permissiveness to be saved
+					// this ensure it's not loaded
+					checkbox.checked = state[name];
+					styleLabelToCheckbox(checkbox);
+				}
 				if(name != 'mode' && name != 'use_categories') {
 					if(!state[name]) {
 						allChecked = false;
@@ -480,8 +722,11 @@ async function loadCheckboxesState() {
 }
 
 function storeCheckboxState(checkbox) {
-	if(checkbox.name != 'check-all') {
-		storeItemBasedOnAccessType('tagsChecked',false,checkbox.name,checkbox.checked);
+	if(document.querySelector('input[name="mode"]').checked) {
+		// while in strict mode, don't save selections
+		if(checkbox.name != 'check-all' && checkbox.name != 'mode') {
+			storeItemBasedOnAccessType('tagsChecked',false,checkbox.name,checkbox.checked);
+		}
 	}
 }
 
@@ -617,81 +862,156 @@ function rotatePromptsImages() {
 		image.classList.remove('hidden');
 	});
 	// switch prev and next button icons
-	let artIndex = 0;
-	artIndex = imgTypeShown-1;
-	if(artIndex < 0) { artIndex = 2; }
 	let prevButtons = document.querySelectorAll('.art_prev span');
 	prevButtons.forEach(function(span) {
-		span.textContent = artTypes[artIndex];
+		span.textContent = artTypes[imgTypeShown];
+		span.title = 'showing ' + artTitles[imgTypeShown];
 	});
-	artIndex = imgTypeShown+1;
-	if(artIndex > 2) { artIndex = 0; }
 	let nextButtons = document.querySelectorAll('.art_next span');
 	nextButtons.forEach(function(span) {
-		span.textContent = artTypes[artIndex];
+		span.textContent = artTypes[imgTypeShown];
+		span.title = 'showing ' + artTitles[imgTypeShown];
 	});
 }
 
-function updateArtistsCountPerTag(whoCalled) {
-	if(whoCalled == 'start') {
-		// on page load, we need to add all the counts first
-		updateArtistsCountPerTagSlow();
+function rotateModelsImages() {
+	// hide all imgBoxes
+	let visibleImgBoxes = document.querySelectorAll('.imgBox:not(.hidden)');
+	visibleImgBoxes.forEach(function(imgBox) {
+		imgBox.classList.add('hidden');
+	});
+	// switch model selection, unhide desired imgBox
+	if(secondModelIsSelected) {
+		secondModelIsSelected = false;
+		visibleImgBoxes = document.querySelectorAll('.imgBox[data-model="0"]');
+	} else {
+		secondModelIsSelected = true;
+		visibleImgBoxes = document.querySelectorAll('.imgBox[data-model="1"]');
 	}
-	timer = setTimeout(function() {
-		// for checkbox, we defer counts because it's slow
-		// delay for 100 to allow CSS animation to complete
-		updateArtistsCountPerTagSlow();
-	},100);
+	visibleImgBoxes.forEach(function(imgBox) {
+		imgBox.classList.remove('hidden');
+	});
+	// update button
+	let artSetSpans = document.querySelectorAll('.art_set span');
+	artSetSpans.forEach(function(span) {
+		if(secondModelIsSelected) {
+			span.textContent = 'B: ' + models[secondModelSelected][1];
+			span.title = 'showing ' + models[secondModelSelected][2];
+			doAlert('Showing B: ' + models[secondModelSelected][1],0);
+		} else {
+			span.textContent = 'A: ' + models[0][1];
+			span.title = 'showing ' + models[0][2];
+			doAlert('Showing A:' + models[0][1],0);
+		}
+	});
+	// update name shown on hover
+	let modelName = document.querySelectorAll('.model_name span');
+	modelName.forEach(function(span) {
+		span.childNodes[2].nodeValue = models[secondModelSelected][2];
+	});
 }
 
-function updateArtistsCountPerTagSlow() {
-	let permissiveCheckbox = document.querySelector('input[name="mode"]');
-	let isPermissive = permissiveCheckbox.checked;
-	let deprecatedCheckbox = document.querySelector('input[name="deprecated"]');
+function updateTags(whoCalled) {
+	let delay = 10;
+	if(whoCalled == 'start') {
+		// delay of 200ms allow checkbox CSS animation to complete
+		delay = 200;
+	}
+	timer = setTimeout(async function() {
+		// we defer counts per tag because strict mode is slow
+		updateArtistsCountPerTagSlow(whoCalled);
+		if(whoCalled == 'start') {
+			await loadMostUsedTags();
+			sortTags();
+			showHideLowCountTags();
+			// #toggles has .start from HTML; we shown normal appearance after sorting
+			document.querySelector('#toggles').classList.remove('start');
+		}
+	}, delay);
+}
+
+function updateArtistsCountPerTagSlow(whoCalled) {
+	let hideDeprecated = document.querySelector('input[name="deprecated"]').checked;
+	let isPermissive = document.querySelector('input[name="mode"]').checked;
 	let checkboxes = document.querySelectorAll('input[type="checkbox"]');
-	let divs = document.querySelectorAll('.image-item');
-	let hiddenDivs = document.querySelectorAll('.image-item.hidden');
-	let deprecatedDivs = document.querySelectorAll('.image-item[data-deprecated="true"]');
-	let last = performance.now();
-	checkboxes.forEach(function(checkbox) {
-		// 'favorite' count is updated elsewhere
-		if(checkbox.name != 'favorite') {
-			// top controls aren't tags and don't have counts
-			if(!checkbox.parentNode.classList.contains('top_control')) {
-				let matchingDivs;
-				if(isPermissive) {
-					matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]');
-				} else {
-					// for strict mode, for each checkbox, only count artists with a tags matching all checked checkboxes
-					matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]:not(.hidden)');
+	if(whoCalled == 'start' || whoCalled == 'permissivenessClick') {
+		// permissive mode tag counts don't change based on what's selected
+		// so we gather counts based on the data rather than DOM
+		// since it's fast, we'll do it for start regardless of permissive setting
+		if(whoCalled == 'start') {
+			for(i=1,il=tagCategories.length-1; i<il; i++) {
+				// skip first category ('important')
+				// and skip last category ('other')
+				let category = tagCategories[i];
+				for(j=1,jl=category.length; j<jl; j++) {
+					// skip first item, which is category name
+					let tag = category[j];
+					let countKnown = 0;
+					let countAll = 0;
+					for(k=0,kl=artistsData.length; k<kl; k++) {
+						let artist = artistsData[k];
+						if(artist[2].indexOf(tag) > -1) {
+							countAll++;
+							if(!artist[3]) {
+								countKnown++;
+							}
+						}
+					}
+					let arr = [tag,countKnown,countAll];
+					tagCountsPermissive.push(arr);
 				}
-				let filteredDivs = Array.from(matchingDivs).filter(mat => {
-					// only includes the artists known to SD
-					return !Array.from(deprecatedDivs).some(dep => dep === mat);
-				});
-				let count = 0;
-				if(deprecatedCheckbox.checked) {
-					count = filteredDivs.length;
-				} else {
-					count = matchingDivs.length;
-				}
-				if(!count) { count = 0; }
-				checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
-				checkbox.parentNode.classList.remove('no_matches');
-				checkbox.parentNode.querySelector('input').disabled = false;
-				if(!isPermissive) {
-					if(count == 0) {
-						checkbox.parentNode.classList.add('no_matches');
-						checkbox.parentNode.querySelector('input').disabled = true;
+			}
+		}
+		// write counts to DOM
+		let hideLowCount = document.querySelector('input[name="deprecated"]').checked;
+		for (i=0, il=tagCountsPermissive.length; i<il; i++) {
+			let tag = tagCountsPermissive[i];
+			checkbox = document.querySelector('input[name="' + tag[0].toLowerCase() + '"]');
+			if(checkbox !== null) {
+				// some tags tagCategories aren't found in artistsData
+				if(!checkbox.parentNode.classList.contains('top_control')) {
+					if(hideLowCount) {
+						checkbox.parentNode.querySelector('.count').textContent = ' - ' + tag[1].toLocaleString();
+					} else {
+						checkbox.parentNode.querySelector('.count').textContent = ' - ' + tag[2].toLocaleString();
 					}
 				}
 			}
 		}
-	});
-	updateCountOfAllArtistsShown(divs, hiddenDivs);
-	if(isPermissive) {
+		checkboxes.forEach(function(checkbox) {
+			checkbox.parentNode.classList.remove('no_matches');
+			checkbox.parentNode.querySelector('input').disabled = false;
+		});
 		updateArtistsCountPerCategory();
 	}
+	if(!isPermissive) {
+		// strict mode updates the counts with every checkbox change
+		// counts depend on what's checked and what's visible
+		checkboxes.forEach(function(checkbox) {
+			// 'favorite' count is updated elsewhere
+			if(checkbox.name != 'favorite') {
+				// top controls aren't tags and don't have counts
+				if(!checkbox.parentNode.classList.contains('top_control')) {
+					let matchingDivs;
+					// for each checkbox, only count artists with a tags matching all checked checkboxes
+					matchingDivs = document.querySelectorAll('.image-item[data-tag-list*="' + checkbox.name + '"]:not(.hidden)');
+					count = matchingDivs.length;
+					if(!count) { count = 0; }
+					checkbox.parentNode.querySelector('.count').textContent = ' - ' + count.toLocaleString();
+					if(count == 0) {
+						checkbox.parentNode.classList.add('no_matches');
+						checkbox.parentNode.querySelector('input').disabled = true;
+					} else {
+						checkbox.parentNode.classList.remove('no_matches');
+						checkbox.parentNode.querySelector('input').disabled = false;
+					}
+				}
+			}
+		});
+	}
+	let allDivs = document.querySelectorAll('.image-item');
+	let hiddenDivs = document.querySelectorAll('.image-item.hidden');
+	updateCountOfAllArtistsShown(allDivs, hiddenDivs);
 }
 
 function updateArtistsCountPerCategory() {
@@ -803,7 +1123,7 @@ function hideAllArtists() {
 
 function uncheckedAllStrictMode(isChecked) {
 	if(!isChecked) {
-		// for strict mode, only allow one checked tag, the first one found
+		// when entering strict mode, only allow one checked tag, the first one found
 		let labels = Array.from(document.querySelectorAll('label'))
 			.filter(l => !l.classList.contains('top_control'))
 			.filter(l => !l.classList.contains('category'))
@@ -816,6 +1136,7 @@ function uncheckedAllStrictMode(isChecked) {
 			checkOrUncheckAll(false);
 			let checkbox = labels[0].querySelector('input');
 			checkbox.checked = true;
+			styleLabelToCheckbox(checkbox);
 			doAlert(checkbox.name + ' is checked',0);
 		}
 	}
@@ -1784,34 +2105,30 @@ function hideLowCountSingle(checkbox) {
 	}
 }
 
-function loadLargerImages(imageItem) {
+function showLargerImages(imageItem) {
+	imageItem.classList.add('hover');
 	let images = imageItem.querySelectorAll('img');
-	let missingFiles = 'some image file(s) are missing!\n';
-	let imagePromises = Array.from(images).map((img) => {
+	let imagePromises = [];
+	images.forEach(function(img){
 		if(img.src.indexOf('_thumbs') > -1 && img.dataset.thumbSrc == undefined) {
 			// don't try to load if we tried before
 			if(!img.dataset.deprecated) {
 				let first = img.closest('.image-item').querySelector('.firstN').textContent;
 				let last = img.closest('.image-item').querySelector('.lastN').textContent;
-				return new Promise((resolve, reject) => {
-					img.onload = () => {
-						resolve();
-					}
-					img.onerror = () => {
-						if(img.dataset.missingFiles == undefined) {
-							img.dataset.missingFiles = true;
-							missingFiles += img.src + '\n';
-							img.src = img.dataset.thumbSrc;
-						}
-						reject();
-					};
-					img.dataset.thumbSrc = img.src;
-					let src = 'images/SDXL_1_0/';
-					if(first == '') {
-						src += last.replaceAll(' ', '_');
-					} else {
-						src += first.replaceAll(' ', '_') + '_' + last.replaceAll(' ', '_');
-					}
+				img.dataset.thumbSrc = img.src;
+				let model = img.closest('.imgBox').dataset.model;
+				let src = 'images/'
+				if(model == 0) {
+					src += models[0][0] + '/';
+				} else {
+					src += models[secondModelSelected][0] + '/';
+				}
+				if(first == '') {
+					src += last.replaceAll(' ', '_');
+				} else {
+					src += first.replaceAll(' ', '_') + '_' + last.replaceAll(' ', '_');
+				}
+				let p = new Promise((resolve, reject) => {
 					if(img.classList.contains('img_artwork')) {
 						img.src = src + '-artwork.webp';
 					} else if(img.classList.contains('img_portrait')) {
@@ -1819,17 +2136,34 @@ function loadLargerImages(imageItem) {
 					} else if(img.classList.contains('img_landscape')) {
 						img.src = src + '-landscape.webp';
 					}
+					if(img.complete) {
+						resolve();
+						return;
+					}
+					img.onload = () => {
+						img.onload = null;
+						img.onerror = null;
+						resolve();
+					}
+					img.onerror = () => {
+						missingFiles += img.src + '\n';
+						img.onload = null;
+						img.onerror = null;
+						reject(new Error('Image loading error'));
+					};
 				});
+				imagePromises.push(p);
 			}
 		}
 	});
 	if(imagePromises.length > 0) {
 		Promise.allSettled(imagePromises).then(() => {
-			if(missingFiles.indexOf('webp')>0) {
-				console.warn(missingFiles);
-			}
 		});
 	}
+}
+
+function hideLargerImages(imageItem) {
+	imageItem.classList.remove('hover');
 }
 
 function hideLargerImageBackup(imageItem) {
@@ -1863,7 +2197,7 @@ function makeStyleRuleForDrag() {
 	style = document.createElement('style');
 	document.head.appendChild(style);
 	stylesheet = style.sheet;
-	let index = stylesheet.insertRule('.image-item:hover .imgBox { width: 40%; }', 0);
+	let index = stylesheet.insertRule('.image-item.hover .imgBox { width: 40%; }', 0);
 	imgHoverRule = stylesheet.cssRules[index];
 }
 
@@ -2398,16 +2732,6 @@ function promptBuilderSearch(input,event) {
 	}
 }
 
-function debounceSetXPosOfSearchOutput(func, delay) {
-    let debounceTimer;
-    return function() {
-        const context = this;
-        const args = arguments;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), delay);
-    };
-}
-
 function setXPosOfSearchOutput() {
 	let input = document.querySelector('.prompt_artist input:focus');
 	if(input) {
@@ -2574,6 +2898,38 @@ function formatPrompt(prompt) {
 	return prompt;
 }
 
+function checkMissingInterval() {
+	// if the broken image is cached, the error event won't fire
+	// so we periodically check naturalHeight
+	// if 0, the image is broken and make it prettier
+	let images = document.querySelectorAll('.img');
+	images.forEach(function(img) {
+		if(img.alt !== undefined) {
+			// because alt is added async
+			let str = 'Missing image >>> ';
+			if(img.naturalHeight == 0) {
+				if(img.alt.indexOf(str) < 0) {
+					img.alt = str + img.alt;
+					img.classList.add('missing');
+				}
+			} else {
+				img.alt = img.alt.replace(str,'');
+				img.classList.remove('missing');
+			}
+		}
+	})
+}
+
+function debouncer(func, delay) {
+	let debounceTimer;
+	return function() {
+		const context = this;
+		const args = arguments;
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => func.apply(context, args), delay);
+	};
+}
+
 /*
 **
 **
@@ -2628,7 +2984,7 @@ function addAllListeners() {
 				checkAllInCategory(e.target);
 				hideAllArtists();
 				unhideBasedOnPermissiveSetting();
-				updateArtistsCountPerTag('click');
+				updateTags('click');
 				hideLowCountSingle(e.target);
 			});
 		} else {
@@ -2639,14 +2995,14 @@ function addAllListeners() {
 					storeCheckboxStateAll(this.checked);
 					hideAllArtists();
 					unhideBasedOnPermissiveSetting();
-					updateArtistsCountPerTag('click');
+					updateTags('click');
 				});
 			} else if(checkbox.name == 'mode') {
 				checkbox.addEventListener('change', function(e) {
 					uncheckedAllStrictMode(this.checked);
 					hideAllArtists();
 					unhideBasedOnPermissiveSetting();
-					updateArtistsCountPerTag('click');
+					updateTags('permissivenessClick');
 				});
 			} else if(checkbox.name == 'use_categories') {
 				checkbox.addEventListener('change', function(e) {
@@ -2661,7 +3017,7 @@ function addAllListeners() {
 				checkbox.addEventListener('change', function(e) {
 					hideAllArtists();
 					unhideBasedOnPermissiveSetting();
-					updateArtistsCountPerTag('click');
+					updateTags('click');
 				});
 			}
 		}
@@ -2670,6 +3026,7 @@ function addAllListeners() {
 			styleLabelToCheckbox(this);
 			clearSelection();
 			storeCheckboxState(e.target);
+			updateArtistsImgSrc(false,false);
 		});
 	});
 	// information
@@ -2782,15 +3139,23 @@ function addAllListeners() {
 	var sortAA = document.getElementById('sortAA');
 	sortAA.addEventListener('click', function(e) {
 		sortArtistsByAlpha();
+		updateArtistsImgSrc(false,false);
 		highlightSelectedOption('sortAA');
 		storeOptionsState();
 	});
 	var sortAR = document.getElementById('sortAR');
 	sortAR.addEventListener('click', function(e) {
 		sortArtistsByRandom();
+		updateArtistsImgSrc(false,false);
 		highlightSelectedOption('sortAR');
 		storeOptionsState();
 	});
+	// second model selector
+	let secondModelSelector = document.querySelector('#second_model select');
+	secondModelSelector.addEventListener('change', function(e) {
+		setSecondModelSelected(this);
+	});
+
 	// most used mode
 	var mostUsed = document.getElementById('edit_most_used');
 	mostUsed.addEventListener('click', function(e) {
@@ -2818,12 +3183,13 @@ function addAllListeners() {
 			if(imgHoverTime > startUpTime + 1000) {
 				// this gives time for the startup animation to finish
 				hideToggles();
-				loadLargerImages(e.target);
+				showLargerImages(e.target);
 				timer = setTimeout(hideLargerImageBackup.bind(this, this), 200);
 			}
 		});
 		imageItem.addEventListener('mouseleave', function(e) {
 			showToggles();
+			hideLargerImages(e.target);
 		});
 		imageItem.querySelector('.art_star').addEventListener('click', function(e) {
 			addOrRemoveFavorite(this.closest('.image-item'));
@@ -2842,6 +3208,9 @@ function addAllListeners() {
 		});
 		imageItem.querySelector('.art_edit').addEventListener('click', function(e) {
 			editTagsClicked(this.closest('.image-item'));
+		});
+		imageItem.querySelector('.art_set').addEventListener('click', function() {
+			rotateModelsImages();
 		});
 		imageItem.getElementsByTagName('h3')[0].addEventListener('click', function(e) {
 			copyStuffToClipboard(this,'name');
@@ -2884,7 +3253,12 @@ function addAllListeners() {
 		promptBuilderAddArtist();
 	});
 	var prompt_selector_div = document.querySelector('#prompt_selector > div');
-	prompt_selector_div.addEventListener('scroll', debounceSetXPosOfSearchOutput(function() {
+	prompt_selector_div.addEventListener('scroll', debouncer(function() {
 		setXPosOfSearchOutput();
 	}, 100));
+	// lazy loader
+	var rows = document.querySelector('#rows');
+	rows.addEventListener('scroll', debouncer(function() {
+		lazyLoad();
+	}, 50));
 }

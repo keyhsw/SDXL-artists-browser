@@ -142,7 +142,7 @@ var artistsData = [
 ["Brooks","Mark","comics|fantasy|science-fiction|added-2023-08-08",false],
 ["Brooks","Romaine","contemporary|dream-like|low-contrast|portraits|added-2023-09-01",false],
 ["Brooks","Troy","contemporary|dark|dream-like|impressionism|oil-painting|portraits|surreal|vibrant|added-2023-08-10",false],
-["Broom Lee","","furniture|not-a-person|sculpture|contemporary|added-2023-08-08",false],
+["Lee Broom","","furniture|not-a-person|sculpture|contemporary|added-2023-08-08",false],
 ["Brosh","Allie","autobiographical|comics|flat-colors|whimsical|added-2023-08-12",false],
 ["Brown","Ford Madox","portraits|romanticism|added-2023-09-01",false],
 ["Brun","Charles Le","baroque|portraits|added-2023-09-01",false],
@@ -1052,7 +1052,7 @@ var artistsData = [
 ["Wong","Liam","colorful|dystopia|futuristic|photography|photography-color|science-fiction|urban-life|vibrant|added-2023-08-08",false],
 ["Woodman","Francesca","American|contemporary|female-figures|feminism|monochromatic|nudes|photography|photography-bw|self-portraits|added-2023-08-08",false],
 ["Woodring","Jim","aliens|American|characters|comics|creatures|dream-like|fantasy|pen-and-ink|psychedelic|surreal|added-2023-08-08",false],
-["Woodroffe","Patrick","dream-like|eerie|illusion|science-fiction|surreal|added-2023-08-08",false],
+["Woodroffe","Patrick","dinosaurs|dream-like|eerie|illusion|science-fiction|surreal|added-2023-08-08",false],
 ["Wright","Frank Lloyd","angular|architecture|art-deco|environmentalism|furniture|nature|organic|added-2023-08-10",false],
 ["Wulfing","Sulamith","dream-like|ethereal|fantasy|German|illustration|kids-book|spirituality|whimsical|added-2023-08-12",false],
 ["Wyeth","N.C.","American|illustration|kids-book|nature|nostalgia|realism|rural-life|added-2023-08-12",false],
@@ -1328,11 +1328,10 @@ var artistsData = [
 ];
 
 // first category must be 'important' and last must be 'other' or things won't work
-// tag names cannot be 'image-item' or 'hidden' because well, this isn't coded that well, lol
 var tagCategories = [
 	['important',"favorite"],
 	['mediums',"3D-rendering","animation","architecture","assemblage","body-art","book-illustration","bronze","calligraphy","caricature","cartoon","ceiling-painting","ceramics","collage","comics","digital","drawing","earthworks","enamel","engraving","etching","experiential","film","frescoes","glasswork","graffiti","graphic-design","graphic-novel","illuminated-manuscripts","illustration","immersive","metalwork","infinity-rooms","installation","interactive","jewelry","kinetic","land-art","landscape-architecture","light-art","lithography","manga-anime","mixed-media","montage","mosaic","multimedia","mural-painting","newspaper","oil-painting","painting","pastel","pen-and-ink","performance","photography","photography-color","photography-bw","posters","printmaking","public-art","puppets","quilting","recycled-materials","sculpture","sketching","stained-glass","street-art","tapestry","textiles","typography","velvet","video-art","video-games","virtual-reality","wall-drawings","watercolor","woodblock"],
-	['styles',"abstract","action-painting","afro-futurism","angular","anthropomorphism","atmospheric","blurry","bohemian","bold-colors","color-field","colorful","cute","cyberpunk","dark","delicate","drip-painting","eerie","elegant","ethereal","figurative","flat-colors","folk-art","fragmentation","futuristic","geometric","gestural","golden","gothic","grids","grungy","high-contrast","illusion","impasto","improvisation","industrial","kids-book","large-scale","long-exposure","low-contrast","opulent","macro-world","Maximalism","melancholy","messy","miniature","monochromatic","muted-colors","mysterious","naturalist","neon","noir","observational","organic","ornate","pastel-colors","photorealism","pin-up","playful","polka-dots","precisionism","primary-colors","propaganda","psychedelic","pulp","Rococo","shallow-depth-of-field","steampunk","symbolist","text-based","vibrant","whimsical"],
+	['styles',"abstract","action-painting","afro-futurism","angular","anthropomorphism","atmospheric","blurry","bohemian","bold-colors","color-field","colorful","cute","cyberpunk","dark","delicate","drip-painting","eerie","elegant","ethereal","figurative","flat-colors","folk-art","fragmentation","futuristic","geometric","gestural","golden","gothic","grids","grungy","high-contrast","illusion","impasto","improvisation","industrial","kids-book","large-scale","long-exposure","low-contrast","opulent","macro-world","maximalism","melancholy","messy","miniature","monochromatic","muted-colors","mysterious","naturalist","neon","noir","observational","organic","ornate","pastel-colors","photorealism","pin-up","playful","polka-dots","precisionism","primary-colors","propaganda","psychedelic","pulp","Rococo","shallow-depth-of-field","steampunk","symbolist","text-based","vibrant","whimsical"],
 	['themes',"activism","adventure","advertising","allegory","anxiety","autobiographical","childhood","commercial-art","conceptual","consumerism","controversy","death","displacement","distortion","documentary","dream-like","dreams","dystopia","empowerment","environmentalism","exoticism","family","fantasy","femininity","feminism","fleeting-moments","folklore","friendship","futurism","homo-eroticism","horror","identity","kitsch","loneliness","luxury","magic","mathematics","metamorphosis","metaphysics","mysticism","nightlife","nostalgia","observational","plein-air","politics","punk","religion","satire","science-fiction","serenity","slice-of-life","social-commentary","solitude","spirituality","surreal","utopia"],
 	['subjects',"astronauts","alien-worlds","aliens","animals","ballet","barbarians","battle-scenes","BDSM","beach-scenes","big-eyes","biological","botanical","cabaret","celebrity","characters","cityscapes","cloudscapes","clowns","contemporary-life","costumes","counter-culture","creatures","dancers","dinosaurs","domestic-scenes","dragons","emaciation","erotica","everyday-life","fairies","fashion","female-figures","figure-studies","flesh","flowers","furniture","gardens","genre-scenes","great-depression","hats","history","holocaust","horses","immigrants","insects","interiors","kabuki-yakusha-e","labyrinths","landscapes","masks","modern-life","monsters","muscles","mythology","nature","nudes","outdoor-scenes","outer-space","plein-air","pools","pop-culture","portraits","robots-cyborgs","royalty","rural-life","seascapes","self-portraits","silhouettes","skies","Southwest","space-ships","sports","still-life","suburbia","superheroes","technology","theater","tropics","underwater","urban-life","violence","water-lilies","waves","wilderness","wildlife"],
 	['movements',"abstract-expressionism","art-deco","art-Nouveau","automatism","avant-garde","baroque","Bauhaus","collaborative","cubism","cut-outs","dadaism","Dutch-golden-age","earthworks","expressionism","fauvism","figurativism","gutai","harlem-renaissance","hudson-river-school","impressionism","magic-realism","minimalism","neo-classicism","neo-expressionism","neo-impressionism","orientalism","pointillism","pop-art","post-colonialism","post-impressionism","post-minimalism","primitivism","realism","romanticism","serial-art","shock-art","social-realism","spatialism","tonalism","underground"],
@@ -1340,3 +1339,19 @@ var tagCategories = [
 	['identities',"Aboriginal","African","African-American","Albanian","Algerian","American","Angolan","anonymous","Argentinean","Armenian","Asian","Australian","Austrian","Azerbaijani","Bahraini","Bangladeshi","Barbadian","Belarusian","Belgian","Bengali","Bolivian","Bosnian","Brazilian","British","Bulgarian","Cameroonian","Canadian","Catalan","Chilean","Chinese","Colombian","CostaRican","Croatian","Cuban","Cypriot","Czech","Dane","Dominican","Danish","Dutch","Ecuadorian","Egyptian","Emirati","Estonian","Ethiopian","European","Filipino","Finnish","Flemish","French","Georgian","German","Ghanaian","Greek","Guatemalan","Guyanese","Hungarian","Icelandic","Indian","Indonesian","Iranian","Iraqi","Irish","Islamic","Israeli","Italian","Jamaican","Japanese","Jewish","Kenyan","Latvian","Lebanese","LGBTQ","Libyan","Lithuanian","Luxembourger","Macedonian","Mexican","Moldovan","Mongol","Montenegrin","Moroccan","Namibian","Native-American","New-Zealander","Nigerian","Norwegian","not-a-person","Palestinian","Peruvian","Polish","Portuguese","PuertoRican","Qatari","Romanian","Russian","Saudi","Scottish","Serbian","Slovak","Slovenian","South-African","South-Korean","Spanish","Sudanese","Swedish","Swiss","Syrian","Thai","Tunisian","Turkish","Ukrainian","Uruguayan","Venezuelan","Vietnamese","Yemeni"],
 	['other'],
 ];
+
+/* Current tags not found in any artist (excluding identities):
+	assemblage
+	calligraphy
+	caricature
+	enamel
+	illuminated-manuscripts
+	tapestry
+	bohemian
+	bold-colors
+	maximalism
+	miniature
+	propaganda
+	contemporary-life
+	kabuki-yakusha-e
+*/

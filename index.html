@@ -13,7 +13,7 @@
 <body>
 	<div id="layout">
 		<div id="rows">
-			<div id="toggles">
+			<div id="toggles" class="start">
 				<div id="options_info">
 					<span class="count">press the <i>/</i> key</span>
 				</div>
@@ -24,21 +24,29 @@
 					<span class="link" id="promptL">🏞️</span>
 				</div>
 				<div id="options_artist_sort">
-					<span class="count">sort artists by:</span>
+					<span class="count">sort artists:</span>
 					<span class="link selected" id="sortAR">🎰</span>
 					<span class="link" id="sortAA">🔠</span>
 				</div>
 				<div id="options_tag_sort">
-					<span class="count">sort tags by:</span>
+					<span class="count">sort tags:</span>
 					<span class="link selected" id="sortTC">📶</span>
 					<span class="link" id="sortTA">🔠</span>
+				</div>
+				<div class="divider"></div>
+				<div id="second_model">
+					<span>B:</span><div>
+						<select onautocomplete="off">
+							<option value="SDXL">2nd model: SDXL 1.0</option>
+						</select>
+					</div>
 				</div>
 				<div class="divider"></div>
 				<label class="top_control top_all">
 					<input type="checkbox" checked="checked" name="check-all" value="check-all" autocomplete="off"><span>all artists</span><span class="count"></span>
 				</label>
 				<div id="artistsShown" class="top_control">
-					<span class="count"></span>
+					<span class="count">shown - %</span>
 				</div>
 				<div class="divider"></div>
 				<label class="top_control">
@@ -104,7 +112,7 @@
 							<div>1</div>
 						</div>
 						<div class="prompt_artist_name">
-							<input type="text" value="" placeholder="search by name" autocomplete="off" required pattern=".+" title="you can also click an artist name to add them here" />
+							<input type="text" value="" placeholder="search by name" autocomplete="off" required pattern=".+" title="you can also tap an artist name to add them here" />
 						</div>
 						<div class="prompt_artist_intensity" title="the weight of this artist">
 							<select autocomplete="off">
@@ -174,12 +182,36 @@
 		</div>
 		<div id="information_help" class="information_section">
 			<div>
-				<h3>Click an artist's...</h3>
+				<h3>Tap an artist's...</h3>
 				<ul>
 					<li><strong>name</strong> to copy them to clipboard</li>
 					<li><strong>tags</strong> to copy them to clipboard</li>
 					<li><strong>⭐️</strong> to toggle them as favorited</li>
-					<li><strong>✍️</strong> enters offline tag-editing mode, see below</li>
+					<li><strong>🌐</strong> Bing search for the artist</li>
+					<li><strong>🎨🧑🏞️</strong> rotate between the 3 prompts</li>
+					<li><strong>model</strong> switch between vanilla SDXL (A) and another model (B)</li>
+				</ul>
+				<h3>B: Model</h3>
+				<ul>
+					<li>Allows you to select a second XL model (B) to compare with the vanilla XL model from Stability (A).
+					Switch between A and B by tapping the matching button on an artist.</li>
+					<li>These models were selected by me based on what I prefer.  I have no relationship with these model makers.</li>
+					<li><strong>DynaVision:</strong>
+						<ul>
+							<li>Makes cute faces, removes artifacts, saturates colors, while preserving artist style.</li>
+							<li>Makes cleaner and smoother images at the expense of grungier styles.</li>
+							<li>For landscapes, it reduces artist style strongly but improves composition.</li>
+							<li>Improves anatomy and leans towards NSFW.  Proportions are somewhat cartoonish.</li>
+							<li>To remove the "big eyes" effect, use "anime" in the negative prompt.</li>
+						</ul>
+					</li>
+					<li><strong>Crystal Clear:</strong>
+						<ul>
+							<li>Adds detail and removes artifacts while while strongly preserving artist style.</li>
+							<li>Preserves styles even for landscapes and even for messy/grungy artists.</li>
+							<li>Makes faces more aesthetic, improves anatomy, and leans towards realism.<li>
+						</ul>
+					</li>
 				</ul>
 				<h3>Permissive filter</h3>
 				<ul>
@@ -200,7 +232,7 @@
 				</ul>
 				<h3>Important tags</h3>
 				<ul>
-					<li>Click <strong>edit</strong> under the important category to add or remove tags</li>
+					<li>Tap <strong>edit</strong> under the important category to add or remove tags</li>
 				</ul>
 				<h3>Why does the 🎨 prompt sometimes match the 🧑 or 🏞️ prompt?</h3>
 				<ul>
@@ -208,9 +240,9 @@
 						The prompt used for the 🎨 images is the intentionally generic, "an image".  If that results in a portrait, that's useful to know.  It indicates that, for that artist, SDXL is more strongly trained to output portraits.  Anything in your prompt that's not related to a person will harder to prompt for in that artist's style.
 					</li>
 				</ul>
-				<h3>✍️ Offline tag-editing</h3>
+				<h3>✍️ Offline tag-editing mode</h3>
 				<ul>
-					<li>If you are viewing this from Hugging Face, your tag edits won't be applied.  They'll be saved and applied if you've downloaded the repository and are viewing your local file.  In both cases, your edits will be available for export 📥 as text.  If you want to suggest tag improvements for everyone's benefit, edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
+					<li>This features is only for editing tags offline.  If you are viewing this from Hugging Face, any tag edits won't be applied, but they'll be saved.  If you've downloaded the repository and are viewing your local file, tag edits are applied.  In both cases, your edits will be available for export 📥 as text.  If you want to suggest tag improvements for everyone's benefit, edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
 				</ul>
 				<h3>Build a prompt</h3>
 				<ul>
@@ -294,20 +326,20 @@
 					<li>
 						<strong>🎨 prompt:</strong><br>
 						<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:1.5)</b></li>
-					 	<strong>negative:</strong><br>
-					 	edges, borders
+						<strong>negative:</strong><br>
+						edges, borders
 					</li>
 					<li>
-					 	<strong>🧑 prompt:</strong><br>
-						<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>landscape, outdoor natural scenery, water, bridge<b>:1.0)</b></li>
-					 	<strong>negative:</strong><br>
-					 	edges, borders, inside, people, person
-					</li>
-					<li>
-					 	<strong>🏞️ prompt:</strong><br>
+						<strong>🧑 prompt:</strong><br>
 						<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>portrait of a person, inside a place<b>:1.0)</b></li>
-					 	<strong>negative:</strong><br>
-					 	edges, borders, outside, about, the artist, themselves
+						<strong>negative:</strong><br>
+						edges, borders, outside, about, the artist, themselves
+					</li>
+					<li>
+						<strong>🏞️ prompt:</strong><br>
+						<b>(</b>artwork in the style of<i>artist full name</i><b>:1.5)</b>, <b>(</b>an image<b>:0.5)</b>, <b>(</b>landscape, outdoor natural scenery, water, bridge<b>:1.0)</b></li>
+						<strong>negative:</strong><br>
+						edges, borders, inside, people, person
 					</li>
 					<li>
 						<strong>exceptions:</strong><br>
