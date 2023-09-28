@@ -146,9 +146,11 @@ h4 {
 	flex-wrap: wrap;
 	align-items: flex-start;
 	justify-content: space-around;
+	box-sizing: border-box;
 	margin-left: calc(40% + 50px);
 	margin-top: 20px;
 	margin-bottom: 20px;
+	margin-right: 60px;
 	width: 100%;
 }
 
