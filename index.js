@@ -2069,6 +2069,7 @@ function showHideCategories() {
 
 function showHideLowCountTags() {
 	var hideLowCount = document.querySelector('input[name="low_count"]').checked;
+	var checkAll = document.querySelector('input[name="check-all"]').checked;
 	var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 	checkboxes.forEach(function(checkbox) {
 		if(hideLowCount) {
@@ -2078,7 +2079,9 @@ function showHideLowCountTags() {
 				&& !classes.contains('top_control')) {
 				let count = parseInt(checkbox.parentNode.querySelector('.count').textContent.replace(/,/g, '').trim().substring(2),10);
 				if(count <= lowCountThreshold) {
-					if(checkbox.checked) {
+					if(checkbox.checked && checkAll == false) {
+						// low-count checkboxes that are checked aren't unchecked
+						// unless all checkboxes are checked
 						checkbox.parentNode.dataset.hideDeferred = true;
 					} else {
 						if(!checkbox.parentNode.classList.contains('is_most_used')) {
