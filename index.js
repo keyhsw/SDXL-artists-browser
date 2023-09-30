@@ -65,6 +65,7 @@ async function startUp() {
 	showHideCategories();
 	await loadOptionsState();
 	await loadFavoritesState();
+	blurUnblurNudity();
 	hideAllArtists();
 	unhideBasedOnPermissiveSetting();
 	sortArtists();
@@ -72,7 +73,7 @@ async function startUp() {
 	updateArtistsImgSrc(false,false);
 	updateTags('start');
 	makeStyleRuleForDrag();
-	teasePartition();
+	// teasePartition();
 	promptBuilderAddArtist(true);
 	updatePromptBuilderParts();
 	addAllListeners();
@@ -250,7 +251,7 @@ async function loadEditedArtists() {
 					editedArtists.delete(artistFound);
 				} else {
 					if (!proto.startsWith('http')) {
-						// if this is a local file, then update artistData with the saved edits
+						// if this is a local file, then update artistsData with the saved edits
 						artistsData[i] = artistFound;
 					}
 				}
@@ -1114,8 +1115,78 @@ function checkAllInCategory(theCheckbox) {
 	}
 }
 
+function blurUnblurNudity() {
+	let nudity = document.querySelector('input[name="nudity"]');
+	if(nudity.checked) {
+		let images = document.querySelectorAll('.img');
+		images.forEach(function(img){
+			img.classList.remove('censored');
+		});
+	} else {
+		for (let i=0, il=artistsData.length; i<il; i++) {
+			let artist = artistsData[i];
+			for(j=0,jl=artist[4].length; j<jl; j++) {
+				let blurBox = 0;
+				let blurModel = artist[4][j][0];
+				if(blurModel > 0) { blurBox = 1; }
+				let blurImage = artist[4][j][1];
+				if(blurImage == 'a') { blurImage = '.img_artwork'; }
+				if(blurImage == 'p') { blurImage = '.img_portrait'; }
+				if(blurImage == 'l') { blurImage = '.img_landscape'; }
+				if(blurModel == secondModelSelected || blurModel == 0) {
+					let imageItems = document.querySelectorAll('.image-item');
+					for(k=0,kl=imageItems.length; k<kl; k++) {
+						// find match in artistsData if first and last names match
+						let imageItem = imageItems[k];
+						let firstN = imageItem.querySelector('.firstN').textContent;
+						let lastN = imageItem.querySelector('.lastN').textContent;
+						if(artist[0] == lastN && artist[1] == firstN) {
+							let box = imageItem.querySelector('.imgBox[data-model="' + blurBox + '"');
+							let image = box.querySelector(blurImage).classList.add('censored');
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+function toggleCensored(h4) {
+	let imageItem = h4.closest('.image-item');
+	let firstN = imageItem.querySelector('.firstN').textContent;
+	let lastN = imageItem.querySelector('.lastN').textContent;
+	for (let i=0, il=artistsData.length; i<il; i++) {
+		let artist = artistsData[i];
+		if(artist[0] == lastN && artist[1] == firstN) {
+			let blurModel = imageItem.querySelector('.imgBox:not(.hidden)').dataset.model;
+			if(blurModel == 1) { blurModel = secondModelSelected; }
+			let img = imageItem.querySelector('.imgBox:not(.hidden) .img:not(.hidden)');
+			let blurImage = '';
+			if(img.classList.contains('img_artwork')) { blurImage = 'a'; }
+			if(img.classList.contains('img_portrait')) { blurImage = 'p'; }
+			if(img.classList.contains('img_landscape')) { blurImage = 'l'; }
+			let blurNew = blurModel + blurImage;
+			let match = false;
+			for(j=0,jl=artist[4].length; j<jl; j++) {
+				let blurOld = artist[4][j]
+				if(blurNew == blurOld) {
+					match = true;
+					artist[4].splice(j,1);
+					img.classList.remove('censored');
+				}
+			}
+			if(!match) {
+				artist[4].push(blurNew);
+				img.classList.add('censored');
+			}
+			break;
+		}
+	}
+}
+
 function hideAllArtists() {
-	var imageItems = document.querySelectorAll('.image-item');
+	let imageItems = document.querySelectorAll('.image-item');
 	imageItems.forEach(function(imageItem) {
 		imageItem.classList.add('hidden');
 	});
@@ -1481,9 +1552,18 @@ function showExport() {
 			}
 		}
 		newTags.push(added);
-		// output updated artist
 		artist[2] = newTags.join('|');
-		value += '["'+artist[0]+'","'+artist[1]+'","'+artist[2]+'",'+artist[3]+'],\r\n';
+		// sort censored images array
+		artist[4] = artist[4].sort(function(a, b) {
+			return a.localeCompare(b);
+		});
+		let arrayStr = '';
+		for (let i=0, il=artist[4].length; i<il; i++) {
+			arrayStr += '"' + artist[4][i] + '",';
+		}
+		arrayStr = arrayStr.substring(0,arrayStr.length-1);
+		// output updated artist
+		value += '["'+artist[0]+'","'+artist[1]+'","'+artist[2]+'",'+artist[3]+',['+arrayStr+']],\r\n';
 	}
 	textareaA.value = value;
 }
@@ -3022,6 +3102,10 @@ function addAllListeners() {
 					unhideBasedOnPermissiveSetting();
 					updateTags('click');
 				});
+			} else if(checkbox.name == 'nudity') {
+				checkbox.addEventListener('change', function(e) {
+					blurUnblurNudity();
+				});
 			}
 		}
 		// all checkboxes
@@ -3029,7 +3113,9 @@ function addAllListeners() {
 			styleLabelToCheckbox(this);
 			clearSelection();
 			storeCheckboxState(e.target);
-			updateArtistsImgSrc(false,false);
+			window.setTimeout(function() {
+				updateArtistsImgSrc(false,false);
+			})
 		});
 	});
 	// information
@@ -3142,14 +3228,18 @@ function addAllListeners() {
 	var sortAA = document.getElementById('sortAA');
 	sortAA.addEventListener('click', function(e) {
 		sortArtistsByAlpha();
-		updateArtistsImgSrc(false,false);
+		window.setTimeout(function() {
+			updateArtistsImgSrc(false,false);
+		})
 		highlightSelectedOption('sortAA');
 		storeOptionsState();
 	});
 	var sortAR = document.getElementById('sortAR');
 	sortAR.addEventListener('click', function(e) {
 		sortArtistsByRandom();
-		updateArtistsImgSrc(false,false);
+		window.setTimeout(function() {
+			updateArtistsImgSrc(false,false);
+		})
 		highlightSelectedOption('sortAR');
 		storeOptionsState();
 	});
@@ -3157,6 +3247,7 @@ function addAllListeners() {
 	let secondModelSelector = document.querySelector('#second_model select');
 	secondModelSelector.addEventListener('change', function(e) {
 		setSecondModelSelected(this);
+		blurUnblurNudity();
 	});
 
 	// most used mode
@@ -3214,6 +3305,7 @@ function addAllListeners() {
 		});
 		imageItem.querySelector('.art_set').addEventListener('click', function() {
 			rotateModelsImages();
+			blurUnblurNudity();
 		});
 		imageItem.getElementsByTagName('h3')[0].addEventListener('click', function(e) {
 			copyStuffToClipboard(this,'name');
@@ -3222,6 +3314,7 @@ function addAllListeners() {
 		imageItem.getElementsByTagName('h4')[0].addEventListener('click', function(e) {
 			if(!this.classList.contains('edit_mode')) {
 				copyStuffToClipboard(this, 'tags')
+				// toggleCensored(this);
 				// toggleThisArtistsTags(this.textContent);
 			}
 		});

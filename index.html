@@ -61,12 +61,15 @@
 				<label class="top_control">
 					<input type="checkbox" checked="checked" name="deprecated" value="deprecated" autocomplete="off"><span>hide unknown to SDXL</span><span class="count"></span>
 				</label>
+				<label class="top_control">
+					<input type="checkbox" checked="checked" name="nudity" value="nudity" autocomplete="off"><span>allow risqué</span><span class="count"></span>
+				</label>
 				<div class="divider"></div>
 				<span id="edit_most_used" class="hidden">edit these</span>
 				<!-- JS will insert checkboxes here -->
 			</div>
 			<div id="gutter">
-				<div data-tooltip="drag slowly"></div>
+				<div data-tooltip="← →"></div>
 			</div>
 			<div id="image-container">
 				<div id="filtersHidingAll">
@@ -230,6 +233,10 @@
 					<li>If you prompt with their names, the result will be unlike their actual style and generic, and you can achieve similar results by prompting "a painting", etc.</li>
 					<li>They're included in the database for the record of what SDXL doesn't know</li>
 				</ul>
+				<h3>Allow risqué</h3>
+				<ul>
+					<li>Unchecking blurs all images that don't meet extremely conservative, G-rated, 100% SFW criteria.  Note that the most risqué this site gets is boobies.  Even when allow risqué is checked, I've censored all below-the-waist nudity as liability protection.</li>
+				</ul>
 				<h3>Important tags</h3>
 				<ul>
 					<li>Tap <strong>edit</strong> under the important category to add or remove tags</li>
@@ -354,7 +361,7 @@
 					<li>Open source.  Creatives Commons license.  Download for free.</li>
 					<li>I don't get nor do I want compensation for this.  Getting thanks feels great!</li>
 					<li>I'm not affiliated with Stability AI</li>
-					<li>Use at your own risk.  Contains mild nudity 🧟</li>
+					<li>Use at your own risk.  You're responsible for your own actions.</li>
 				</ul>
 			</div>
 		</div>
