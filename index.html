@@ -50,7 +50,7 @@
 				</div>
 				<div class="divider"></div>
 				<label class="top_control">
-					<input type="checkbox" checked="checked" name="mode" value="mode" autocomplete="off"><span>permissive</span><span class="count"></span>
+					<input type="checkbox" checked="checked" name="mode" value="mode" autocomplete="off"><span>permissive filter</span><span class="count"></span>
 				</label>
 				<label class="top_control">
 					<input type="checkbox" checked="checked" name="use_categories" value="use_categories" autocomplete="off"><span>use categories</span><span class="count"></span>
@@ -62,7 +62,7 @@
 					<input type="checkbox" checked="checked" name="deprecated" value="deprecated" autocomplete="off"><span>hide unknown to SDXL</span><span class="count"></span>
 				</label>
 				<label class="top_control">
-					<input type="checkbox" checked="checked" name="nudity" value="nudity" autocomplete="off"><span>allow risqué</span><span class="count"></span>
+					<input type="checkbox" checked="checked" name="nudity" value="nudity" autocomplete="off"><span>don't blur risqué</span><span class="count"></span>
 				</label>
 				<div class="divider"></div>
 				<span id="edit_most_used" class="hidden">edit these</span>
@@ -167,8 +167,8 @@
 	</div>
 	<div id="information">
 		<div id="info_switcher">
-			<h2 id="info_actions" class="selected">🔍&nbsp;&nbsp;&nbsp;actions</h2>
-			<h2 id="info_help">📓&nbsp;&nbsp;&nbsp;manual</h2>
+			<h2 id="info_actions" class="selected">🔍&nbsp;&nbsp;&nbsp;search</h2>
+			<h2 id="info_help">📓&nbsp;&nbsp;&nbsp;features</h2>
 			<h2 id="info_tips">📸&nbsp;&nbsp;&nbsp;prompts</h2>
 			<h2 id="info_about">💫&nbsp;&nbsp;&nbsp;about</h2>
 			<h2 id="info_export">📤&nbsp;&nbsp;&nbsp;export</h2>
@@ -212,7 +212,7 @@
 						<ul>
 							<li>Adds detail and removes artifacts while while strongly preserving artist style.</li>
 							<li>Preserves styles even for landscapes and even for messy/grungy artists.</li>
-							<li>Makes faces more aesthetic, improves anatomy, and leans towards realism.<li>
+							<li>Makes faces more aesthetic, improves anatomy, and leans towards realism.</li>
 						</ul>
 					</li>
 				</ul>
@@ -233,13 +233,24 @@
 					<li>If you prompt with their names, the result will be unlike their actual style and generic, and you can achieve similar results by prompting "a painting", etc.</li>
 					<li>They're included in the database for the record of what SDXL doesn't know</li>
 				</ul>
-				<h3>Allow risqué</h3>
+				<h3>Don't blur risqué</h3>
 				<ul>
-					<li>Unchecking blurs all images that don't meet extremely conservative, G-rated, 100% SFW criteria.  Note that the most risqué this site gets is boobies.  Even when allow risqué is checked, I've censored all below-the-waist nudity as liability protection.</li>
+					<li>Risqué means any image that isn't G-rated and 100% SFW by extremely conservative standards.  But the most risqué this site gets is images with boobies.</li>
 				</ul>
 				<h3>Important tags</h3>
 				<ul>
-					<li>Tap <strong>edit</strong> under the important category to add or remove tags</li>
+					<li>Tap <strong>edit</strong> under the important category to add or remove tags to that category.  This lets you save your "favorite" tags for easier access.</li>
+				</ul>
+				<h3>Build a prompt</h3>
+				<ul>
+					<li>See 📸 prompts</li>
+				</ul>
+				<h3>But wait, there's more...</h3>
+				<ul>
+					<li>Quickly toggle any tag by typing the / key, then typing the first few letters of the tag</li>
+					<li>Need inspo?  Try the "see some random tags" button from the search tab.  Does what it says on the tin</li>
+					<li>"Copy visible artist names" from the search tab lets you export all artists that match you filters as plain text</li>
+					<il>The export tab lets you copy data from one device to another</il>
 				</ul>
 				<h3>Why does the 🎨 prompt sometimes match the 🧑 or 🏞️ prompt?</h3>
 				<ul>
@@ -249,11 +260,7 @@
 				</ul>
 				<h3>✍️ Offline tag-editing mode</h3>
 				<ul>
-					<li>This features is only for editing tags offline.  If you are viewing this from Hugging Face, any tag edits won't be applied, but they'll be saved.  If you've downloaded the repository and are viewing your local file, tag edits are applied.  In both cases, your edits will be available for export 📥 as text.  If you want to suggest tag improvements for everyone's benefit, edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
-				</ul>
-				<h3>Build a prompt</h3>
-				<ul>
-					<li>See 📸 prompts</li>
+					<li>This feature is only for editing tags offline.  If you are viewing this from Hugging Face, any tag edits won't be applied, but they'll be saved.  If you've downloaded the repository and are viewing your local file, tag edits are applied.  In both cases, your edits will be available for export 📥 as text.  If you want to suggest tag improvements for everyone's benefit, edit tags, copy the text from 📥, and post it as a comment to Hugging Face.  I will incorporate accurate edits ASAP.  Thank you for contributing!</li>
 				</ul>
 			</div>
 		</div>
@@ -324,7 +331,7 @@
 					<li>Suggest features and report bugs</li>
 					<li>Leave all feedback on <a href="https://huggingface.co/spaces/mattthew/SDXL-artists-browser/discussions" target="_blank">Huggingface</a></li>
 				</ul>
-				<h3>Workflow for these style images</h3>
+				<h3>Workflow for almost all of these images</h3>
 				<ul>
 					<li>
 						<strong>All:</strong><br>
@@ -350,18 +357,18 @@
 					</li>
 					<li>
 						<strong>exceptions:</strong><br>
-						For most photographers, "artwork in the style of <i>name</i>" was replaced with "by <i>name</i>".  Rarely, seed 48 was used.</li>
+						For most photographers, "artwork in the style of <i>name</i>" was replaced with "by <i>name</i>".  Rarely, seed 48 was used.  For Dynavision I used negative prompt keywords to reduce NSFW.</li>
 				</ul>
 				<h3>Disclaimers</h3>
 				<ul>
-					<li>This tools is just for fun.  This information may NOT be correct! The tags are mostly from manual input with a mix of other sources, some AI generated.</li>
-					<li>Remember, SDXL is only a crude imitation of these artists.  Check out these artists' actual artwork for more inspiration!</li>
-					<li>This database has more straight white male artists than in the actual population.  That's because they've been favored by art-collectors, past and present.  Please suggest artists I should add.</li>
-					<li>My code doesn't use cookies and sends nothing to any server.  But it's hosted on Huggingface, and I can't control if they cookie you</li>
-					<li>Open source.  Creatives Commons license.  Download for free.</li>
-					<li>I don't get nor do I want compensation for this.  Getting thanks feels great!</li>
-					<li>I'm not affiliated with Stability AI</li>
-					<li>Use at your own risk.  You're responsible for your own actions.</li>
+					<li>The tags are mostly my manual input, with a mix of other sources including AI.  They may be incorrect!</li>
+					<li>SDXL is only a crude imitation of these artists.  Check out these artists' actual artwork for more inspiration!</li>
+					<li>This database has more straight white male artists than in the actual population.  That's because they've been favored by art-collectors, past and present.  Please suggest non white male artists that I should add.</li>
+					<li>My code doesn't use cookies, and it sends nothing to any server.  But it's hosted on Hugging Face, and I can't control if they cookie you.</li>
+					<li>This tool is open source and Creatives Commons license.  Download for free, use offline, modify as you wish.</li>
+					<li>I don't get, nor do I want, any compensation for this.  Getting thanked feels great though!</li>
+					<li>I'm not affiliated with Stability AI or any model makers.</li>
+					<li>This tools is only for fun.  Use at your own risk.  You're responsible for your own actions.  Void where prohibited.</li>
 				</ul>
 			</div>
 		</div>

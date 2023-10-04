@@ -709,7 +709,11 @@ async function loadCheckboxesState() {
 					checkbox.checked = state[name];
 					styleLabelToCheckbox(checkbox);
 				}
-				if(name != 'mode' && name != 'use_categories') {
+				if(name != 'mode'
+					&& name != 'use_categories'
+					&& name != 'low_count'
+					&& name != 'deprecated'
+					&& name != 'nudity') {
 					if(!state[name]) {
 						allChecked = false;
 					}
@@ -1118,11 +1122,13 @@ function checkAllInCategory(theCheckbox) {
 function blurUnblurNudity() {
 	let nudity = document.querySelector('input[name="nudity"]');
 	if(nudity.checked) {
+		nudity.parentNode.classList.remove('warning');
 		let images = document.querySelectorAll('.img');
 		images.forEach(function(img){
 			img.classList.remove('censored');
 		});
 	} else {
+		nudity.parentNode.classList.add('warning');
 		for (let i=0, il=artistsData.length; i<il; i++) {
 			let artist = artistsData[i];
 			for(j=0,jl=artist[4].length; j<jl; j++) {
